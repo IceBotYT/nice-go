@@ -13,10 +13,10 @@ from nice_go.ws_client import EventListener, WebSocketClient
 
 async def test_ws_connect(mock_ws_client: WebSocketClient) -> None:
     assert mock_ws_client.ws is not None
-    assert isinstance(mock_ws_client.ws, MagicMock)
+    assert isinstance(mock_ws_client.ws, AsyncMock)
     mock_session = MagicMock()
     mock_session.ws_connect = AsyncMock()
-    mock_session.ws_connect.return_value = AsyncMock()
+    mock_session.ws_connect.return_value = AsyncMock(closed=False)
     mock_session.ws_connect.return_value.receive = AsyncMock()
     mock_session.ws_connect.return_value.receive.return_value = MagicMock(
         data=json.dumps({"type": "connection_ack"}),
@@ -37,7 +37,7 @@ async def test_ws_connect(mock_ws_client: WebSocketClient) -> None:
 
 async def test_ws_init_unexpected_type(mock_ws_client: WebSocketClient) -> None:
     assert mock_ws_client.ws is not None
-    assert isinstance(mock_ws_client.ws, MagicMock)
+    assert isinstance(mock_ws_client.ws, AsyncMock)
     mock_ws_client.ws.receive = AsyncMock()
     mock_ws_client.ws.receive.return_value = MagicMock(
         data=json.dumps({"type": "unexpected_type"}),
@@ -48,7 +48,7 @@ async def test_ws_init_unexpected_type(mock_ws_client: WebSocketClient) -> None:
 
 async def test_ws_init_timeout(mock_ws_client: WebSocketClient) -> None:
     assert mock_ws_client.ws is not None
-    assert isinstance(mock_ws_client.ws, MagicMock)
+    assert isinstance(mock_ws_client.ws, AsyncMock)
     mock_ws_client.ws.receive = AsyncMock()
     mock_ws_client.ws.receive.side_effect = asyncio.TimeoutError
     with pytest.raises(WebSocketError):
@@ -57,7 +57,7 @@ async def test_ws_init_timeout(mock_ws_client: WebSocketClient) -> None:
 
 async def test_ws_send_json(mock_ws_client: WebSocketClient) -> None:
     assert mock_ws_client.ws is not None
-    assert isinstance(mock_ws_client.ws, MagicMock)
+    assert isinstance(mock_ws_client.ws, AsyncMock)
     mock_ws_client.ws.send_json = AsyncMock()
     await mock_ws_client.send({"type": "test_type"})
     mock_ws_client.ws.send_json.assert_called_once()
@@ -65,7 +65,7 @@ async def test_ws_send_json(mock_ws_client: WebSocketClient) -> None:
 
 async def test_ws_send_str(mock_ws_client: WebSocketClient) -> None:
     assert mock_ws_client.ws is not None
-    assert isinstance(mock_ws_client.ws, MagicMock)
+    assert isinstance(mock_ws_client.ws, AsyncMock)
     mock_ws_client.ws.send_str = AsyncMock()
     await mock_ws_client.send("test_message")
     mock_ws_client.ws.send_str.assert_called_once()
@@ -73,7 +73,7 @@ async def test_ws_send_str(mock_ws_client: WebSocketClient) -> None:
 
 async def test_ws_subscribe_and_close(mock_ws_client: WebSocketClient) -> None:
     assert mock_ws_client.ws is not None
-    assert isinstance(mock_ws_client.ws, MagicMock)
+    assert isinstance(mock_ws_client.ws, AsyncMock)
     # Test both subscribing and closing, as they are closely related
     mock_ws_client.ws.send_json = AsyncMock()
     mock_ws_client.ws.close = AsyncMock()
@@ -112,7 +112,7 @@ async def test_ws_poll_errors(
     msg_type: aiohttp.WSMsgType,
 ) -> None:
     assert mock_ws_client.ws is not None
-    assert isinstance(mock_ws_client.ws, MagicMock)
+    assert isinstance(mock_ws_client.ws, AsyncMock)
     mock_ws_client.ws.receive = AsyncMock()
     mock_ws_client.ws.receive.return_value = MagicMock(type=msg_type)
     with pytest.raises(WebSocketError):
@@ -194,7 +194,7 @@ async def test_subscribe_timeout(mock_ws_client: WebSocketClient) -> None:
 async def test_unsubscribe(mock_ws_client: WebSocketClient) -> None:
     mock_ws_client._subscriptions = ["test_id"]
     assert mock_ws_client.ws is not None
-    assert isinstance(mock_ws_client.ws, MagicMock)
+    assert isinstance(mock_ws_client.ws, AsyncMock)
     mock_ws_client.ws.send_json = AsyncMock()
     await mock_ws_client.unsubscribe("test_id")
     mock_ws_client.ws.send_json.assert_called_once()

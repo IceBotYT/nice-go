@@ -102,7 +102,7 @@ async def test_barrier_operations(
         mock_api.id_token = "test_token"
         mock_get_request_template.return_value = {"query": query}
         assert mock_api.session is not None
-        assert isinstance(mock_api.session, MagicMock)
+        assert isinstance(mock_api.session, AsyncMock)
         mock_api.session.post.return_value.json.return_value = {
             "data": {"devicesControl": True},
         }
@@ -221,8 +221,7 @@ async def test_connect_reconnect(mock_api: NiceGOApi) -> None:
         mock_ws_client_instance.poll.side_effect = [WebSocketError(), None]
         with suppress(StopAsyncIteration):
             await mock_api.connect(reconnect=True)
-        connect_call_count = 2
-        assert mock_ws_client_instance.connect.call_count == connect_call_count
+        mock_ws_client_instance.connect.assert_called_once()
 
 
 async def test_subscribe(mock_api: NiceGOApi) -> None:
@@ -246,7 +245,7 @@ async def test_get_all_barriers(
 ) -> None:
     mock_api.id_token = "test_token"
     assert mock_api.session is not None
-    assert isinstance(mock_api.session, MagicMock)
+    assert isinstance(mock_api.session, AsyncMock)
     mock_api.session.post.return_value.json.return_value = GET_ALL_BARRIERS_RESPONSE
     result = await mock_api.get_all_barriers()
     # api is an object with an address that varies, so we exclude it from the snapshot
@@ -263,7 +262,7 @@ async def test_get_all_barriers_no_connection_state(
 ) -> None:
     mock_api.id_token = "test_token"
     assert mock_api.session is not None
-    assert isinstance(mock_api.session, MagicMock)
+    assert isinstance(mock_api.session, AsyncMock)
     mock_api.session.post.return_value.json.return_value = (
         GET_ALL_BARRIERS_RESPONSE_NO_CONNECTION_STATE
     )

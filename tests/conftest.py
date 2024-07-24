@@ -21,7 +21,7 @@ def mock_api() -> NiceGOApi:
 @pytest.fixture()
 def mock_ws_client() -> WebSocketClient:
     ws = WebSocketClient()
-    ws.ws = MagicMock(closed=False)
+    ws.ws = AsyncMock(closed=False)
     ws._dispatch = MagicMock()  # noqa: SLF001
     ws.id_token = "test_token"
     ws.host = "test_host"
