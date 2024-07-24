@@ -1,0 +1,130 @@
+[tool.poetry]
+name = "nice-go"
+version = "0.0.1"
+description = "Control various Nice access control products"
+authors = [
+    "IceBotYT <34712694+IceBotYT@users.noreply.github.com>",
+]
+license = "MIT"
+readme = "README.md"
+
+documentation = "https://IceBotYT.github.io/nice-go"
+homepage = "https://IceBotYT.github.io/nice-go"
+repository = "https://github.com/IceBotYT/nice-go"
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+
+packages = [
+    { include = "nice_go", from = "src" }
+]
+
+[tool.poetry.dependencies]
+python = ">=3.8.1, <4.0"
+aiohttp = "^3.9.5"
+aiobotocore = "^2.13.1"
+pycognito = "^2024.5.1"
+yarl = "^1.9.4"
+botocore-stubs = "^1.34.147"
+boto3-stubs = "^1.34.147"
+types-aiobotocore = "^2.13.1"
+
+[tool.poetry.group.dev.dependencies]
+mkdocstrings = {version = ">=0.23", extras = ["python"]}
+mkdocs-material = "*"
+mypy = "*"
+pre-commit = "*"
+pymdown-extensions = "*"
+pytest = "*"
+pytest-github-actions-annotate-failures = "*"
+pytest-cov = "*"
+python-kacl = "*"
+ruff = ">=0.2.0"
+pytest-asyncio = "^0.23.8"
+pytest-aiohttp = "^1.0.5"
+syrupy = "^4.6.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py38" # The lowest supported version
+
+[tool.ruff.lint]
+# By default, enable all the lint rules.
+# Add to the ignore list below if you don't want some rules.
+# If you need some ignores for certain modules, see tool.ruff.lint.per-file-ignores below.
+# For individual ignore cases, prefer inline `# noqa`s within the code.
+select = ["ALL"]
+ignore = [
+    "ANN",      # Type hints related, let mypy handle these.
+    "D",        # Docstrings related, way too strict to our taste
+    ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",     # "Use of `assert` detected"
+    "ARG",      # "Unused function argument". Fixtures are often unused.
+    "S105",     # "Possible hardcoded password".
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = [
+    "classmethod",
+    "pydantic.validator",
+    "pydantic.root_validator",
+]
+
+[tool.pytest.ini_options]
+addopts = """\
+    --cov nice_go \
+    --cov tests \
+    --cov-report term-missing \
+    --no-cov-on-fail \
+"""
+asyncio_mode = "auto"
+
+[tool.coverage.report]
+fail_under = 100
+exclude_lines = [
+    'if TYPE_CHECKING:',
+    'pragma: no cover'
+]
+
+[tool.mypy]
+# This is the global mypy configuration.
+# Avoid changing this!
+strict = true  # See all the enabled flags `mypy --help | grep -A 10 'Strict mode'`
+disallow_any_unimported = true
+
+# If you need to ignore something for some specific module,
+# add overrides for them. Avoid changing the global config!
+# For example:
+# [[tool.mypy.overrides]]
+# module = [
+#  "my_unpyted_dependency1.*",
+#  "my_unpyted_dependency2.*"
+# ]
+# ignore_missing_imports = true
+
+# [[tool.mypy.overrides]]
+# module = [
+#   "tests/my_thing/test_my_thing",
+# ]
+# disallow_untyped_defs = false

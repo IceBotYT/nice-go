@@ -1,0 +1,18 @@
+{
+  "template": "https://github.com/woltapp/wolt-python-package-cookiecutter",
+  "commit": "b25684a2c63387153b83a1cc03ea332be8c8279a",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "author_name": "IceBotYT",
+      "author_email": "34712694+IceBotYT@users.noreply.github.com",
+      "github_username": "IceBotYT",
+      "project_name": "Nice G.O.",
+      "project_slug": "nice-go",
+      "package_name": "nice_go",
+      "project_short_description": "Control various Nice access control products",
+      "_template": "https://github.com/woltapp/wolt-python-package-cookiecutter"
+    }
+  },
+  "directory": null
+}
