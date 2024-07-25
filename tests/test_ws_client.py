@@ -67,7 +67,7 @@ async def test_ws_send_json(mock_ws_client: WebSocketClient) -> None:
 async def test_ws_send_str(mock_ws_client: WebSocketClient) -> None:
     assert mock_ws_client.ws is not None
     assert isinstance(mock_ws_client.ws, AsyncMock)
-    mock_ws_client.ws.send_str = AsyncMock()
+    mock_ws_client.ws.send_str = AsyncMock()  # sourcery skip: name-type-suffix
     await mock_ws_client.send("test_message")
     mock_ws_client.ws.send_str.assert_called_once()
 
@@ -165,7 +165,7 @@ async def test_ws_received_message_dispatch_listener_cancelled(
     await mock_ws_client.received_message(
         json.dumps({"type": "data", "payload": "test_payload"}),
     )
-    assert len(mock_ws_client._dispatch_listeners) == 0
+    assert not mock_ws_client._dispatch_listeners
 
 
 async def test_ws_received_message_dispatch_listener_predicate_exception(
@@ -182,7 +182,7 @@ async def test_ws_received_message_dispatch_listener_predicate_exception(
     await mock_ws_client.received_message(
         json.dumps({"type": "data", "payload": "test_payload"}),
     )
-    assert len(mock_ws_client._dispatch_listeners) == 0
+    assert not mock_ws_client._dispatch_listeners
 
 
 async def test_subscribe_timeout(mock_ws_client: WebSocketClient) -> None:
