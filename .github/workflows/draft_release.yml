@@ -37,6 +37,7 @@ jobs:
         with:
           add: 'CHANGELOG.md pyproject.toml'
           message: 'Release ${{ steps.updated_version.outputs.version }}'
+          default_author: github_actions
       - name: Create tag
         run: |
           git tag ${{ steps.updated_version.outputs.version }}
