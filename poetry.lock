@@ -2255,6 +2255,18 @@ files = [
 ]
 
 [[package]]
+name = "sourcery"
+version = "1.21.0"
+description = "Magically refactor Python"
+optional = false
+python-versions = "*"
+files = [
+    {file = "sourcery-1.21.0-py2.py3-none-macosx_10_9_universal2.whl", hash = "sha256:a6f8cf3e34331a1e7f050d2037b39ea45cd276617a231f54044e2fa52f615113"},
+    {file = "sourcery-1.21.0-py2.py3-none-manylinux1_x86_64.whl", hash = "sha256:5fd7fb4e497335cdbf505e31f8fd14b4e27c516d7bf4a63d22ae24f47af2b125"},
+    {file = "sourcery-1.21.0-py2.py3-none-win_amd64.whl", hash = "sha256:22e2c17cba47b3bbdbe56c2fa14423d1f1e8077a16a0e8d42a32c914e279e25e"},
+]
+
+[[package]]
 name = "syrupy"
 version = "4.6.1"
 description = "Pytest Snapshot Test Utility"
@@ -3028,4 +3040,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.1, <4.0"
-content-hash = "b303073d030334d6ab33cbcdf6f7a3bb1bc577bbf9edcc879e61f92df0ce254a"
+content-hash = "f0d8cda91373dc35468d1e3265e8f4c5ee87e8e567d32ec1b8d513287ad67d38"

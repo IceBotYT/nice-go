@@ -1,18 +1,23 @@
+"""Fixtures for tests."""
+
+# ruff: noqa: SLF001
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from nice_go.aws_cognito_authenticator import AwsCognitoAuthenticator
+from nice_go._aws_cognito_authenticator import AwsCognitoAuthenticator
+from nice_go._ws_client import WebSocketClient
 from nice_go.nice_go_api import NiceGOApi
-from nice_go.ws_client import WebSocketClient
 
 
 @pytest.fixture()
 def mock_api() -> NiceGOApi:
+    """Mocked NiceGOApi instance."""
     api = NiceGOApi()
-    api.session = AsyncMock()
-    api.authenticator = MagicMock()
-    api.ws = AsyncMock()
-    api.endpoints = {
+    api._session = AsyncMock()
+    api._authenticator = MagicMock()
+    api._ws = AsyncMock()
+    api._endpoints = {
         "GraphQL": {"device": {"wss": "wss://test", "https": "https://test"}},
     }
     return api
@@ -20,9 +25,10 @@ def mock_api() -> NiceGOApi:
 
 @pytest.fixture()
 def mock_ws_client() -> WebSocketClient:
+    """Mocked WebSocketClient instance."""
     ws = WebSocketClient()
     ws.ws = AsyncMock(closed=False)
-    ws._dispatch = MagicMock()  # noqa: SLF001
+    ws._dispatch = MagicMock()
     ws.id_token = "test_token"
     ws.host = "test_host"
     return ws
@@ -30,6 +36,7 @@ def mock_ws_client() -> WebSocketClient:
 
 @pytest.fixture()
 def mock_authenticator() -> AwsCognitoAuthenticator:
+    """Mocked AwsCognitoAuthenticator instance."""
     return AwsCognitoAuthenticator(
         "test_region",
         "test_client_id",

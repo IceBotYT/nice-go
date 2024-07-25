@@ -1,7 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from nice_go import Barrier
-from nice_go.barrier import BarrierState
+from nice_go._barrier import BarrierState
 
 
 async def test_open() -> None:
@@ -97,3 +98,24 @@ async def test_get_attr() -> None:
         MagicMock(),
     )
     assert await barrier.get_attr("key") == "value"
+
+
+async def test_get_attr_not_found() -> None:
+    barrier = Barrier(
+        "barrier_id",
+        "barrier_type",
+        "control_level",
+        [{"key": "key", "value": "value"}],
+        BarrierState(
+            deviceId="device_id",
+            desired={"key": "value"},
+            reported={"key": "value"},
+            timestamp="timestamp",
+            version="version",
+            connectionState=None,
+        ),
+        MagicMock(),
+    )
+    with pytest.raises(KeyError) as exc_info:
+        await barrier.get_attr("not_found")
+    assert str(exc_info.value) == "'Attribute with key not_found not found.'"

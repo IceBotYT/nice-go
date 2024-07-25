@@ -1,4 +1,5 @@
 # ruff: noqa: SLF001
+from __future__ import annotations
 
 import asyncio
 import json
@@ -8,7 +9,7 @@ import aiohttp
 import pytest
 import yarl
 from nice_go import WebSocketError
-from nice_go.ws_client import EventListener, WebSocketClient
+from nice_go._ws_client import EventListener, WebSocketClient
 
 
 async def test_ws_connect(mock_ws_client: WebSocketClient) -> None:
@@ -210,3 +211,65 @@ async def test_closed_property(mock_ws_client: WebSocketClient) -> None:
     mock_ws_client.ws = MagicMock()
     mock_ws_client.ws.closed = True
     assert mock_ws_client.closed
+
+
+async def test_connect_no_host(mock_ws_client: WebSocketClient) -> None:
+    with pytest.raises(ValueError, match="host must be provided"):
+        await mock_ws_client.connect(
+            MagicMock(),
+            "test_token",
+            yarl.URL("wss://test_endpoint"),
+            MagicMock(),
+            None,
+        )
+
+
+@pytest.mark.parametrize(
+    ("method", "args"),
+    [
+        ("init", ()),
+        ("send", ({"type": "test_type"},)),
+        ("poll", ()),
+    ],
+)
+async def test_closed_error(
+    mock_ws_client: WebSocketClient,
+    method: str,
+    args: tuple[dict[str, str] | None],
+) -> None:
+    mock_ws_client.ws = None
+    with pytest.raises(WebSocketError, match="WebSocket connection is closed"):
+        await getattr(mock_ws_client, method)(*args)
+
+
+async def test_close_already_closed(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    mock_ws_client.ws = MagicMock()
+    mock_ws_client.ws.closed = True
+    await mock_ws_client.close()
+    assert mock_ws_client.ws.close.call_count == 0
+
+
+async def test_received_message_no_predicate(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    mock_ws_client._dispatch_listeners = [
+        EventListener(
+            predicate=None,
+            event="data",
+            future=MagicMock(cancelled=MagicMock(return_value=False)),
+            result=MagicMock(),
+        ),
+    ]
+    await mock_ws_client.received_message(
+        json.dumps({"type": "data", "payload": "test_payload"}),
+    )
+    assert not mock_ws_client._dispatch_listeners
+
+
+async def test_received_message_type_or_payload_missing(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    with pytest.raises(WebSocketError):
+        await mock_ws_client.received_message(json.dumps({"payload": "test_payload"}))

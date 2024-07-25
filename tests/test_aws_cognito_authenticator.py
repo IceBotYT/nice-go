@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from nice_go.aws_cognito_authenticator import AwsCognitoAuthenticator
+from nice_go._aws_cognito_authenticator import AwsCognitoAuthenticator
 
 
 async def test_refresh_token(mock_authenticator: AwsCognitoAuthenticator) -> None:

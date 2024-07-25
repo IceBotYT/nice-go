@@ -1,6 +1,6 @@
 # ruff: noqa: SLF001
 
-from nice_go.backoff import ExponentialBackoff
+from nice_go._backoff import ExponentialBackoff
 
 
 async def test_backoff_reset() -> None:

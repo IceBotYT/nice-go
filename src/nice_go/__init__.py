@@ -1,6 +1,10 @@
-from nice_go.barrier import Barrier
-from nice_go.const import BARRIER_STATUS
-from nice_go.exceptions import (
+"""The Nice G.O. API client for Python.
+
+To start, see the [`NiceGOApi`][nice_go.NiceGOApi] class."""
+
+from nice_go._barrier import Barrier
+from nice_go._const import BARRIER_STATUS
+from nice_go._exceptions import (
     ApiError,
     AuthFailedError,
     NiceGOError,

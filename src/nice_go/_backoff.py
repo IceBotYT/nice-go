@@ -1,3 +1,14 @@
+"""An implementation of the exponential backoff algorithm.
+
+This module provides a class that implements the exponential backoff
+algorithm.  This is useful for retrying transmissions in a distributed
+network where collisions may occur. The algorithm increases the delay
+between retries exponentially up to a maximum value.
+
+Classes:
+    ExponentialBackoff: An implementation of the exponential backoff algorithm.
+"""
+
 from __future__ import annotations
 
 import random
@@ -19,17 +30,17 @@ class ExponentialBackoff:
     2^10 * base, and is reset if no more attempts are needed in a period
     of 2^11 * base seconds.
 
-    Parameters
-    ----------
-    base: :class:`int`
-        The base delay in seconds. The first retry-delay will be up to
-        this many seconds.
-    integral: :class:`bool`
-        Set to ``True`` if whole periods of base is desirable, otherwise any
-        number in between may be returned.
+    Parameters:
+        base:
+            The base delay in seconds. The first retry-delay will be up to
+            this many seconds.
+        integral:
+            Set to ``True`` if whole periods of base is desirable, otherwise any
+            number in between may be returned.
     """
 
     def __init__(self, base: int = 1, *, integral: bool = False):
+        """Initialize the ExponentialBackoff object."""
         self._base: int = base
 
         self._exp: int = 0
@@ -55,6 +66,9 @@ class ExponentialBackoff:
 
         If a period of more than base * 2^11 has passed since the last
         retry, the exponent is reset to 1.
+
+        Returns:
+            The next delay to wait in seconds.
         """
         invocation = time.monotonic()
         interval = invocation - self._last_invocation

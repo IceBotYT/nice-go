@@ -1,4 +1,4 @@
-from nice_go.authentication_tokens import AuthenticationTokens
+from nice_go._authentication_tokens import AuthenticationTokens
 
 
 async def test_authentication_tokens() -> None:

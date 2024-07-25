@@ -1,5 +1,8 @@
+"""Exceptions for Nice G.O. API."""
+
+
 class NiceGOError(Exception):
-    """Base exception for Nice G.O. API"""
+    """Base exception for Nice G.O. API."""
 
 
 class NoAuthError(NiceGOError):
@@ -7,12 +10,12 @@ class NoAuthError(NiceGOError):
 
 
 class ApiError(NiceGOError):
-    """Api error."""
+    """API error."""
 
 
 class AuthFailedError(NiceGOError):
-    """Authentication failed."""
+    """Authentication failed. Check your credentials."""
 
 
 class WebSocketError(NiceGOError):
-    """Websocket error."""
+    """WebSocket error."""

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -16,10 +17,54 @@ from nice_go import (
     WebSocketError,
 )
 
-from tests.const import (
-    GET_ALL_BARRIERS_RESPONSE,
-    GET_ALL_BARRIERS_RESPONSE_NO_CONNECTION_STATE,
-)
+GET_ALL_BARRIERS_RESPONSE = {
+    "data": {
+        "devicesListAll": {
+            "devices": [
+                {
+                    "state": {
+                        "connectionState": {
+                            "connected": True,
+                            "updatedTimestamp": "1234567890",
+                        },
+                        "deviceId": "test_id",
+                        "desired": json.dumps({"test": "value"}),
+                        "reported": json.dumps({"test": "value"}),
+                        "timestamp": "1234567890",
+                        "version": 1,
+                    },
+                    "id": "test_id",
+                    "type": "test_type",
+                    "controlLevel": "test_control_level",
+                    "attr": [{"key": "test_key", "value": "test_value"}],
+                },
+            ],
+        },
+    },
+}
+
+GET_ALL_BARRIERS_RESPONSE_NO_CONNECTION_STATE = {
+    "data": {
+        "devicesListAll": {
+            "devices": [
+                {
+                    "state": {
+                        "connectionState": None,
+                        "deviceId": "test_id",
+                        "desired": json.dumps({"test": "value"}),
+                        "reported": json.dumps({"test": "value"}),
+                        "timestamp": "1234567890",
+                        "version": 1,
+                    },
+                    "id": "test_id",
+                    "type": "test_type",
+                    "controlLevel": "test_control_level",
+                    "attr": [{"key": "test_key", "value": "test_value"}],
+                },
+            ],
+        },
+    },
+}
 
 if TYPE_CHECKING:
     from syrupy.assertion import SnapshotAssertion
@@ -36,7 +81,7 @@ async def test_schedule_event(mock_api: NiceGOApi) -> None:
 async def test_dispatch_event(mock_api: NiceGOApi) -> None:
     coro = AsyncMock()
     mock_api.on_test_event = coro  # type: ignore[attr-defined]
-    mock_api.dispatch("test_event", {"key": "value"})
+    mock_api._dispatch("test_event", {"key": "value"})
     await asyncio.sleep(0)  # Allow the event loop to run
     coro.assert_called_once()
 
@@ -47,8 +92,8 @@ async def test_authenticate(mock_api: NiceGOApi) -> None:
             id_token="test_token",  # noqa: S106
             refresh_token="refresh_token",  # noqa: S106
         )
-        assert mock_api.session is not None
-        result = await mock_api.authenticate("username", "password", mock_api.session)
+        assert mock_api._session is not None
+        result = await mock_api.authenticate("username", "password", mock_api._session)
         assert result == "refresh_token"
         assert mock_api.id_token == "test_token"
 
@@ -61,19 +106,19 @@ async def test_connect_not_authenticated(mock_api: NiceGOApi) -> None:
 
 async def test_connect_no_endpoints(mock_api: NiceGOApi) -> None:
     mock_api.id_token = "test_token"
-    mock_api.endpoints = None
+    mock_api._endpoints = None
     with pytest.raises(ApiError):
         await mock_api.connect()
 
 
 async def test_subscribe_no_ws(mock_api: NiceGOApi) -> None:
-    mock_api.ws = None
+    mock_api._ws = None
     with pytest.raises(WebSocketError):
         await mock_api.subscribe("receiver")
 
 
 async def test_unsubscribe_no_ws(mock_api: NiceGOApi) -> None:
-    mock_api.ws = None
+    mock_api._ws = None
     with pytest.raises(WebSocketError):
         await mock_api.unsubscribe("receiver")
 
@@ -101,9 +146,9 @@ async def test_barrier_operations(
     with patch("nice_go.nice_go_api.get_request_template") as mock_get_request_template:
         mock_api.id_token = "test_token"
         mock_get_request_template.return_value = {"query": query}
-        assert mock_api.session is not None
-        assert isinstance(mock_api.session, AsyncMock)
-        mock_api.session.post.return_value.json.return_value = {
+        assert mock_api._session is not None
+        assert isinstance(mock_api._session, AsyncMock)
+        mock_api._session.post.return_value.json.return_value = {
             "data": {"devicesControl": True},
         }
         method = getattr(mock_api, method_name)
@@ -118,7 +163,7 @@ async def test_event_decorator(mock_api: NiceGOApi) -> None:
 
     assert "on_test_event" in dir(mock_api)
     assert mock_api.on_test_event == on_test_event  # type: ignore[attr-defined]
-    mock_api.dispatch("test_event", {})
+    mock_api._dispatch("test_event", {})
 
 
 async def test_sync_event_decorator(mock_api: NiceGOApi) -> None:
@@ -136,13 +181,13 @@ async def test_run_event_errors(mock_api: NiceGOApi, error: Exception) -> None:
     coro = AsyncMock()
     coro.side_effect = error
     mock_api.on_test_event = coro  # type: ignore[attr-defined]
-    mock_api.dispatch("test_event", {})
+    mock_api._dispatch("test_event", {})
     await asyncio.sleep(0)  # Allow the event loop to run
     coro.assert_called_once()
 
 
 async def test_dispatch_no_listener(mock_api: NiceGOApi) -> None:
-    mock_api.dispatch("test_event", {})
+    mock_api._dispatch("test_event", {})
     await asyncio.sleep(0)  # Allow the event loop to run
 
 
@@ -150,15 +195,13 @@ async def test_authenticate_refresh(mock_api: NiceGOApi) -> None:
     with patch("nice_go.nice_go_api.asyncio.to_thread") as mock_to_thread:
         mock_to_thread.return_value = MagicMock(
             id_token="test_token",  # noqa: S106
-            refresh_token="refresh_token",  # noqa: S106
         )
         mock_api.id_token = "test_token"
-        assert mock_api.session is not None
-        result = await mock_api.authenticate_refresh(
+        assert mock_api._session is not None
+        await mock_api.authenticate_refresh(
             "refresh_token",
-            session=mock_api.session,
+            session=mock_api._session,
         )
-        assert result == "refresh_token"
 
 
 async def test_authenticate_botocore_client_error(mock_api: NiceGOApi) -> None:
@@ -167,9 +210,9 @@ async def test_authenticate_botocore_client_error(mock_api: NiceGOApi) -> None:
             error_response={"Error": {"Code": "TestException"}},
             operation_name="test",
         )
-        assert mock_api.session is not None
+        assert mock_api._session is not None
         with pytest.raises(ApiError):
-            await mock_api.authenticate("username", "password", mock_api.session)
+            await mock_api.authenticate("username", "password", mock_api._session)
 
 
 async def test_authenticate_not_authorized_exception(mock_api: NiceGOApi) -> None:
@@ -178,9 +221,9 @@ async def test_authenticate_not_authorized_exception(mock_api: NiceGOApi) -> Non
             error_response={"Error": {"Code": "NotAuthorizedException"}},
             operation_name="test",
         )
-        assert mock_api.session is not None
+        assert mock_api._session is not None
         with pytest.raises(AuthFailedError):
-            await mock_api.authenticate("username", "password", mock_api.session)
+            await mock_api.authenticate("username", "password", mock_api._session)
 
 
 async def test_connect_error(mock_api: NiceGOApi) -> None:
@@ -226,17 +269,17 @@ async def test_connect_reconnect(mock_api: NiceGOApi) -> None:
 
 async def test_subscribe(mock_api: NiceGOApi) -> None:
     mock_api.id_token = "test_token"
-    mock_api.ws = AsyncMock()
-    mock_api.ws.subscribe.return_value = "test_id"
+    mock_api._ws = AsyncMock()
+    mock_api._ws.subscribe.return_value = "test_id"
     result = await mock_api.subscribe("receiver")
     assert result == "test_id"
 
 
 async def test_unsubscribe(mock_api: NiceGOApi) -> None:
     mock_api.id_token = "test_token"
-    mock_api.ws = AsyncMock()
+    mock_api._ws = AsyncMock()
     await mock_api.unsubscribe("test_id")
-    mock_api.ws.unsubscribe.assert_called_once_with("test_id")
+    mock_api._ws.unsubscribe.assert_called_once_with("test_id")
 
 
 async def test_get_all_barriers(
@@ -244,9 +287,9 @@ async def test_get_all_barriers(
     snapshot: SnapshotAssertion,
 ) -> None:
     mock_api.id_token = "test_token"
-    assert mock_api.session is not None
-    assert isinstance(mock_api.session, AsyncMock)
-    mock_api.session.post.return_value.json.return_value = GET_ALL_BARRIERS_RESPONSE
+    assert mock_api._session is not None
+    assert isinstance(mock_api._session, AsyncMock)
+    mock_api._session.post.return_value.json.return_value = GET_ALL_BARRIERS_RESPONSE
     result = await mock_api.get_all_barriers()
     # api is an object with an address that varies, so we exclude it from the snapshot
     # It's not what we're checking anyways
@@ -261,9 +304,9 @@ async def test_get_all_barriers_no_connection_state(
     snapshot: SnapshotAssertion,
 ) -> None:
     mock_api.id_token = "test_token"
-    assert mock_api.session is not None
-    assert isinstance(mock_api.session, AsyncMock)
-    mock_api.session.post.return_value.json.return_value = (
+    assert mock_api._session is not None
+    assert isinstance(mock_api._session, AsyncMock)
+    mock_api._session.post.return_value.json.return_value = (
         GET_ALL_BARRIERS_RESPONSE_NO_CONNECTION_STATE
     )
     result = await mock_api.get_all_barriers()
@@ -290,3 +333,50 @@ async def test_barrier_operations_no_auth(
     method = getattr(mock_api, method_name)
     with pytest.raises(NoAuthError):
         await method("barrier_id")
+
+
+@pytest.mark.parametrize(
+    ("method_name", "args"),
+    [
+        ("authenticate", ("username", "password", None)),
+        ("connect", ()),
+        ("get_all_barriers", ()),
+        ("_open_barrier", ("barrier_id",)),
+        ("_close_barrier", ("barrier_id",)),
+        ("_light_on", ("barrier_id",)),
+        ("_light_off", ("barrier_id",)),
+    ],
+)
+async def test_no_client_session(
+    mock_api: NiceGOApi,
+    method_name: str,
+    args: tuple[str | None],
+) -> None:
+    mock_api._session = None
+    mock_api.id_token = "test_token"
+    method = getattr(mock_api, method_name)
+    with pytest.raises(ValueError, match="ClientSession not provided"):
+        await method(*args)
+
+
+@pytest.mark.parametrize(
+    ("method_name", "args"),
+    [
+        ("connect", ()),
+        ("get_all_barriers", ()),
+        ("_open_barrier", ("barrier_id",)),
+        ("_close_barrier", ("barrier_id",)),
+        ("_light_on", ("barrier_id",)),
+        ("_light_off", ("barrier_id",)),
+    ],
+)
+async def test_no_endpoints(
+    mock_api: NiceGOApi,
+    method_name: str,
+    args: tuple[str | None],
+) -> None:
+    mock_api._endpoints = None
+    mock_api.id_token = "test_token"
+    method = getattr(mock_api, method_name)
+    with pytest.raises(ApiError, match="Endpoints not available"):
+        await method(*args)
