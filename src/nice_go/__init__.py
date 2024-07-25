@@ -2,7 +2,7 @@
 
 To start, see the [`NiceGOApi`][nice_go.NiceGOApi] class."""
 
-from nice_go._barrier import Barrier
+from nice_go._barrier import Barrier, BarrierState, ConnectionState
 from nice_go._const import BARRIER_STATUS
 from nice_go._exceptions import (
     ApiError,
@@ -22,4 +22,6 @@ __all__ = [
     "NiceGOError",
     "WebSocketError",
     "NoAuthError",
+    "BarrierState",
+    "ConnectionState",
 ]
