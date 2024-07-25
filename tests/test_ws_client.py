@@ -86,7 +86,7 @@ async def test_ws_subscribe_and_close(mock_ws_client: WebSocketClient) -> None:
         type=aiohttp.WSMsgType.TEXT,
     )
 
-    with patch("nice_go.ws_client.uuid.uuid4") as mock_uuid:
+    with patch("nice_go._ws_client.uuid.uuid4") as mock_uuid:
         mock_uuid.return_value = subscription_id
         subscribe_task = asyncio.create_task(mock_ws_client.subscribe("test_query"))
         await asyncio.sleep(0.1)
@@ -186,7 +186,7 @@ async def test_ws_received_message_dispatch_listener_predicate_exception(
 
 
 async def test_subscribe_timeout(mock_ws_client: WebSocketClient) -> None:
-    with patch("nice_go.ws_client.asyncio.wait_for") as mock_wait_for:
+    with patch("nice_go._ws_client.asyncio.wait_for") as mock_wait_for:
         mock_wait_for.side_effect = asyncio.TimeoutError
     with pytest.raises(WebSocketError):
         await mock_ws_client.subscribe("test_query")

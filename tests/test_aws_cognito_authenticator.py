@@ -4,7 +4,7 @@ from nice_go._aws_cognito_authenticator import AwsCognitoAuthenticator
 
 
 async def test_refresh_token(mock_authenticator: AwsCognitoAuthenticator) -> None:
-    with patch("nice_go.aws_cognito_authenticator.boto3.client") as mock_boto3_client:
+    with patch("nice_go._aws_cognito_authenticator.boto3.client") as mock_boto3_client:
         mock_boto3_client.return_value.initiate_auth.return_value = {
             "AuthenticationResult": {"IdToken": "test_token"},
         }
@@ -15,9 +15,9 @@ async def test_refresh_token(mock_authenticator: AwsCognitoAuthenticator) -> Non
 
 async def test_get_new_token(mock_authenticator: AwsCognitoAuthenticator) -> None:
     with patch(
-        "nice_go.aws_cognito_authenticator.boto3.client",
+        "nice_go._aws_cognito_authenticator.boto3.client",
     ) as mock_boto3_client, patch(
-        "nice_go.aws_cognito_authenticator.AWSSRP",
+        "nice_go._aws_cognito_authenticator.AWSSRP",
     ) as mock_awssrp:
         mock_boto3_client.return_value.initiate_auth.return_value = {
             "ChallengeParameters": {"key": "value"},
