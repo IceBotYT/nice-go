@@ -92,7 +92,7 @@ class Barrier:
         Returns:
             A boolean indicating whether the command was successful.
         """
-        return await self.api._open_barrier(self.id)
+        return await self.api.open_barrier(self.id)
 
     async def close(self) -> bool:
         """Close the barrier.
@@ -100,7 +100,7 @@ class Barrier:
         Returns:
             A boolean indicating whether the command was successful.
         """
-        return await self.api._close_barrier(self.id)
+        return await self.api.close_barrier(self.id)
 
     async def light_on(self) -> bool:
         """Turn on the light of the barrier.
@@ -108,7 +108,7 @@ class Barrier:
         Returns:
             A boolean indicating whether the command was successful.
         """
-        return await self.api._light_on(self.id)
+        return await self.api.light_on(self.id)
 
     async def light_off(self) -> bool:
         """Turn off the light of the barrier.
@@ -116,7 +116,7 @@ class Barrier:
         Returns:
             A boolean indicating whether the command was successful.
         """
-        return await self.api._light_off(self.id)
+        return await self.api.light_off(self.id)
 
     async def get_attr(self, key: str) -> str:
         """Get the value of an attribute.

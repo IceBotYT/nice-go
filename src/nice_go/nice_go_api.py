@@ -447,7 +447,7 @@ class NiceGOApi:
 
         return barriers
 
-    async def _open_barrier(self, barrier_id: str) -> bool:
+    async def open_barrier(self, barrier_id: str) -> bool:
         """Open a barrier.
 
         Args:
@@ -484,7 +484,7 @@ class NiceGOApi:
 
         return result
 
-    async def _close_barrier(self, barrier_id: str) -> bool:
+    async def close_barrier(self, barrier_id: str) -> bool:
         """Close a barrier.
 
         Args:
@@ -518,7 +518,7 @@ class NiceGOApi:
 
         return result
 
-    async def _light_on(self, barrier_id: str) -> bool:
+    async def light_on(self, barrier_id: str) -> bool:
         """Turn the light on.
 
         Args:
@@ -555,7 +555,7 @@ class NiceGOApi:
 
         return result
 
-    async def _light_off(self, barrier_id: str) -> bool:
+    async def light_off(self, barrier_id: str) -> bool:
         """Turn the light off.
 
         Args:
