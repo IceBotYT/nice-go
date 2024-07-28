@@ -19,7 +19,7 @@ async def test_open() -> None:
             version="version",
             connectionState=None,
         ),
-        MagicMock(_open_barrier=AsyncMock(return_value=True)),
+        MagicMock(open_barrier=AsyncMock(return_value=True)),
     )
     assert await barrier.open() is True
 
@@ -38,7 +38,7 @@ async def test_close() -> None:
             version="version",
             connectionState=None,
         ),
-        MagicMock(_close_barrier=AsyncMock(return_value=True)),
+        MagicMock(close_barrier=AsyncMock(return_value=True)),
     )
     assert await barrier.close() is True
 
@@ -57,7 +57,7 @@ async def test_light_on() -> None:
             version="version",
             connectionState=None,
         ),
-        MagicMock(_light_on=AsyncMock(return_value=True)),
+        MagicMock(light_on=AsyncMock(return_value=True)),
     )
     assert await barrier.light_on() is True
 
@@ -76,7 +76,7 @@ async def test_light_off() -> None:
             version="version",
             connectionState=None,
         ),
-        MagicMock(_light_off=AsyncMock(return_value=True)),
+        MagicMock(light_off=AsyncMock(return_value=True)),
     )
     assert await barrier.light_off() is True
 

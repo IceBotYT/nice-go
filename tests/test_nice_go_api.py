@@ -132,10 +132,10 @@ async def test_get_all_barriers_not_authenticated(mock_api: NiceGOApi) -> None:
 @pytest.mark.parametrize(
     ("method_name", "query"),
     [
-        ("_open_barrier", "open_barrier"),
-        ("_close_barrier", "close_barrier"),
-        ("_light_on", "light_on"),
-        ("_light_off", "light_off"),
+        ("open_barrier", "open_barrier"),
+        ("close_barrier", "close_barrier"),
+        ("light_on", "light_on"),
+        ("light_off", "light_off"),
     ],
 )
 async def test_barrier_operations(
@@ -319,10 +319,10 @@ async def test_get_all_barriers_no_connection_state(
 @pytest.mark.parametrize(
     ("method_name"),
     [
-        ("_open_barrier"),
-        ("_close_barrier"),
-        ("_light_on"),
-        ("_light_off"),
+        ("open_barrier"),
+        ("close_barrier"),
+        ("light_on"),
+        ("light_off"),
     ],
 )
 async def test_barrier_operations_no_auth(
@@ -341,10 +341,10 @@ async def test_barrier_operations_no_auth(
         ("authenticate", ("username", "password", None)),
         ("connect", ()),
         ("get_all_barriers", ()),
-        ("_open_barrier", ("barrier_id",)),
-        ("_close_barrier", ("barrier_id",)),
-        ("_light_on", ("barrier_id",)),
-        ("_light_off", ("barrier_id",)),
+        ("open_barrier", ("barrier_id",)),
+        ("close_barrier", ("barrier_id",)),
+        ("light_on", ("barrier_id",)),
+        ("light_off", ("barrier_id",)),
     ],
 )
 async def test_no_client_session(
@@ -364,10 +364,10 @@ async def test_no_client_session(
     [
         ("connect", ()),
         ("get_all_barriers", ()),
-        ("_open_barrier", ("barrier_id",)),
-        ("_close_barrier", ("barrier_id",)),
-        ("_light_on", ("barrier_id",)),
-        ("_light_off", ("barrier_id",)),
+        ("open_barrier", ("barrier_id",)),
+        ("close_barrier", ("barrier_id",)),
+        ("light_on", ("barrier_id",)),
+        ("light_off", ("barrier_id",)),
     ],
 )
 async def test_no_endpoints(
