@@ -34,12 +34,11 @@ packages = [
 python = ">=3.9.1, <4.0"
 aiohttp = "^3.9.5"
 aiobotocore = "^2.13.1"
-pycognito = "^2024.5.1"
 yarl = "^1.9.4"
 botocore-stubs = "^1.34.147"
 boto3-stubs = "^1.34.147"
 types-aiobotocore = "^2.13.1"
-boto3 = "1.34.131"
+pycognito = "*"
 
 [tool.poetry.group.dev.dependencies]
 mkdocstrings = {version = ">=0.23", extras = ["python"]}
