@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import logging
 import uuid
 from typing import TYPE_CHECKING, Any, Callable, NamedTuple
 
@@ -20,6 +21,8 @@ from nice_go._util import get_request_template
 
 if TYPE_CHECKING:
     import yarl
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class EventListener(NamedTuple):
@@ -82,6 +85,9 @@ class WebSocketClient:
         # Construct the URL
         url = endpoint.with_query({"header": header, "payload": "e30="})
 
+        # URL contains sensitive information, so we don't want to log it
+        _LOGGER.debug("Connecting to WebSocket server at %s", endpoint)
+
         headers = {"sec-websocket-protocol": "graphql-ws"}
         self.ws = await client_session.ws_connect(url, headers=headers)
 
@@ -96,8 +102,10 @@ class WebSocketClient:
         if self.ws is None or self.ws.closed:
             msg = "WebSocket connection is closed"
             raise WebSocketError(msg)
+        _LOGGER.debug("Initializing WebSocket connection")
         await self.send({"type": "connection_init"})
         try:
+            _LOGGER.debug("Waiting for connection_ack")
             message = await self.ws.receive(timeout=10)
             data = json.loads(message.data)
             if data["type"] != "connection_ack":
@@ -108,6 +116,7 @@ class WebSocketClient:
         except asyncio.TimeoutError as e:
             msg = "Connection to the websocket server timed out"
             raise WebSocketError(msg) from e
+        _LOGGER.debug("Received connection_ack, WebSocket connection established")
 
         self._dispatch("connected", None)
 
@@ -123,6 +132,7 @@ class WebSocketClient:
         if self.ws is None or self.ws.closed:
             msg = "WebSocket connection is closed"
             raise WebSocketError(msg)
+        _LOGGER.debug("Sending message: %s", message)
         if isinstance(message, dict):
             await self.ws.send_json(message)
         else:
@@ -136,10 +146,14 @@ class WebSocketClient:
         """
         if self.ws is None or self.ws.closed:
             return
+        _LOGGER.debug("Closing WebSocket client")
         # Unsubscribe from all subscriptions
         for subscription_id in self._subscriptions:
+            _LOGGER.debug("Unsubscribing from subscription %s", subscription_id)
             await self.unsubscribe(subscription_id)
+        _LOGGER.debug("Closing WebSocket connection")
         await self.ws.close()
+        _LOGGER.debug("WebSocket connection closed")
 
     async def poll(self) -> None:
         """Poll the WebSocket connection for messages.
@@ -198,6 +212,8 @@ class WebSocketClient:
         elif message["type"] == "error":
             msg = f"Received error message: {message}"
             raise WebSocketError(msg)
+        else:
+            _LOGGER.debug("Received message of type %s: %s", message["type"], message)
 
     async def received_message(self, message: str) -> None:
         """Handle a received message.
@@ -208,10 +224,12 @@ class WebSocketClient:
         Raises:
             WebSocketError: If the message does not contain 'type
         """
+        _LOGGER.debug("Received message: %s", message)
         parsed_message = self.load_message(message)
         if "type" not in message:
             msg = f"Received message does not contain 'type', got {message}"
             raise WebSocketError(msg)
+        _LOGGER.debug("Dispatching message")
         self.dispatch_message(parsed_message)
 
         removed = []
@@ -243,6 +261,8 @@ class WebSocketClient:
                 future.set_result(ret)
                 removed.append(index)
 
+                _LOGGER.debug("Event %s occurred, no longer waiting", entry.event)
+
         for index in reversed(removed):
             del self._dispatch_listeners[index]
 
@@ -265,6 +285,7 @@ class WebSocketClient:
         Raises:
             WebSocketError: If the event is not valid.
         """
+        _LOGGER.debug("Waiting for event %s", event)
         future: asyncio.Future[dict[str, Any]] = asyncio.Future()
         self._dispatch_listeners.append(EventListener(predicate, event, result, future))
         return future
@@ -292,12 +313,18 @@ class WebSocketClient:
                 "host": self.host,
             },
         )
+        _LOGGER.debug(
+            "Subscribing to receiver %s with subscription ID %s",
+            receiver,
+            subscription_id,
+        )
         await self.send(payload)
 
         def _predicate(message: dict[str, Any]) -> bool:
             valid: bool = (
                 message["type"] == "start_ack" and message["id"] == subscription_id
             )
+            _LOGGER.debug("Checking if start_ack is valid: %s", valid)
             return valid
 
         try:
@@ -306,7 +333,11 @@ class WebSocketClient:
             msg = "Subscription to the websocket server timed out"
             raise WebSocketError(msg) from e
 
+        _LOGGER.debug("Subscription successful")
+
         self._subscriptions.append(subscription_id)
+
+        _LOGGER.debug("Subscription added")
 
         return subscription_id
 
@@ -320,8 +351,10 @@ class WebSocketClient:
             WebSocketError: If the WebSocket connection is closed
         """
         payload = await get_request_template("unsubscribe", {"id": subscription_id})
+        _LOGGER.debug("Unsubscribing from subscription %s", subscription_id)
         await self.send(payload)
         self._subscriptions.remove(subscription_id)
+        _LOGGER.debug("Unsubscribed from subscription %s", subscription_id)
 
     @property
     def closed(self) -> bool:

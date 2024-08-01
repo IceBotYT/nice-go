@@ -114,6 +114,8 @@ class NiceGOApi:
             msg = "The decorated function must be a coroutine"
             raise TypeError(msg)
 
+        _LOGGER.debug("Adding event listener %s", coro.__name__)
+
         setattr(self, coro.__name__, coro)
         return coro
 
@@ -172,6 +174,7 @@ class NiceGOApi:
         except AttributeError:
             pass
         else:
+            _LOGGER.debug("Dispatching event %s", event)
             self._schedule_event(coro, method, data)
 
     async def authenticate_refresh(
@@ -236,6 +239,7 @@ class NiceGOApi:
             ApiError: If an API error occurs.
         """
         try:
+            _LOGGER.debug("Authenticating")
             if user_name and password:
                 token = await asyncio.to_thread(
                     self._authenticator.get_new_token,
@@ -247,6 +251,8 @@ class NiceGOApi:
                     self._authenticator.refresh_token,
                     refresh_token,
                 )
+
+            _LOGGER.debug("Authenticated")
 
             self.id_token = token.id_token
 
@@ -309,6 +315,8 @@ class NiceGOApi:
 
                 api_url = self._endpoints["GraphQL"]["device"]["wss"]
 
+                _LOGGER.debug("Connecting to WebSocket API %s", api_url)
+
                 self._ws = WebSocketClient()
                 await self._ws.connect(
                     self._session,
@@ -317,6 +325,8 @@ class NiceGOApi:
                     self._dispatch,
                     yarl.URL(self._endpoints["GraphQL"]["device"]["https"]).host,
                 )
+
+                _LOGGER.debug("Connected to WebSocket API")
 
                 while True:
                     await self._ws.poll()
@@ -328,6 +338,7 @@ class NiceGOApi:
         ) as e:
             self._dispatch("connection_lost", {"exception": e})
             if not reconnect:
+                _LOGGER.debug("Connection lost, not reconnecting")
                 await self.close()
                 raise
 
@@ -335,7 +346,7 @@ class NiceGOApi:
                 return
 
             retry = backoff.delay()
-            _LOGGER.exception("Connection lost, retrying in %s seconds", retry)
+            _LOGGER.debug("Connection lost, retrying in %s seconds", retry)
             await asyncio.sleep(retry)
 
     async def subscribe(self, receiver: str) -> str:
@@ -355,6 +366,8 @@ class NiceGOApi:
             msg = "No WebSocket connection"
             raise WebSocketError(msg)
 
+        _LOGGER.debug("Subscribing to receiver %s", receiver)
+
         return await self._ws.subscribe(receiver)
 
     async def unsubscribe(self, subscription_id: str) -> None:
@@ -370,6 +383,8 @@ class NiceGOApi:
             msg = "No WebSocket connection"
             raise WebSocketError(msg)
 
+        _LOGGER.debug("Unsubscribing from subscription %s", subscription_id)
+
         await self._ws.unsubscribe(subscription_id)
 
     async def close(self) -> None:
@@ -382,6 +397,8 @@ class NiceGOApi:
         async def _close() -> None:
             if self._ws:
                 await self._ws.close()
+
+        _LOGGER.debug("Closing connection")
 
         self._closing_task = asyncio.create_task(_close())
         await self._closing_task
@@ -408,6 +425,9 @@ class NiceGOApi:
 
         api_url = self._endpoints["GraphQL"]["device"]["https"]
 
+        _LOGGER.debug("Getting all barriers")
+        _LOGGER.debug("API URL: %s", api_url)
+
         headers = {"Authorization": self.id_token, "Content-Type": "application/json"}
 
         response = await self._session.post(
@@ -416,6 +436,9 @@ class NiceGOApi:
             json=await get_request_template("get_all_barriers", None),
         )
         data = await response.json()
+
+        _LOGGER.debug("Got all barriers")
+        _LOGGER.debug("Data: %s", data)
 
         barriers = []
 
@@ -472,6 +495,9 @@ class NiceGOApi:
 
         api_url = self._endpoints["GraphQL"]["device"]["https"]
 
+        _LOGGER.debug("Opening barrier %s", barrier_id)
+        _LOGGER.debug("API URL: %s", api_url)
+
         headers = {"Authorization": self.id_token, "Content-Type": "application/json"}
 
         response = await self._session.post(
@@ -502,6 +528,9 @@ class NiceGOApi:
             raise ApiError(msg)
 
         api_url = self._endpoints["GraphQL"]["device"]["https"]
+
+        _LOGGER.debug("Closing barrier %s", barrier_id)
+        _LOGGER.debug("API URL: %s", api_url)
 
         headers = {"Authorization": self.id_token, "Content-Type": "application/json"}
 
@@ -543,6 +572,9 @@ class NiceGOApi:
 
         api_url = self._endpoints["GraphQL"]["device"]["https"]
 
+        _LOGGER.debug("Turning light on for barrier %s", barrier_id)
+        _LOGGER.debug("API URL: %s", api_url)
+
         headers = {"Authorization": self.id_token, "Content-Type": "application/json"}
 
         response = await self._session.post(
@@ -579,6 +611,9 @@ class NiceGOApi:
             raise ApiError(msg)
 
         api_url = self._endpoints["GraphQL"]["device"]["https"]
+
+        _LOGGER.debug("Turning light off for barrier %s", barrier_id)
+        _LOGGER.debug("API URL: %s", api_url)
 
         headers = {"Authorization": self.id_token, "Content-Type": "application/json"}
 

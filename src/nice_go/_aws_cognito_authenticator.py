@@ -8,11 +8,15 @@ Info:
     module to authenticate with AWS Cognito.
 """
 
+import logging
+
 import boto3
 from aiobotocore.session import get_session
 from pycognito import AWSSRP  # type: ignore[import-untyped]
 
 from nice_go._authentication_tokens import AuthenticationTokens
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class AwsCognitoAuthenticator:
@@ -59,6 +63,7 @@ class AwsCognitoAuthenticator:
         Returns:
             The new authentication tokens.
         """
+        _LOGGER.debug("Refreshing token")
         cognito_identity_provider = boto3.client("cognito-idp", self.region_name)
         resp = cognito_identity_provider.initiate_auth(
             AuthFlow="REFRESH_TOKEN_AUTH",
@@ -67,6 +72,7 @@ class AwsCognitoAuthenticator:
             },
             ClientId=self.client_id,
         )
+        _LOGGER.debug("Token refreshed")
         return AuthenticationTokens(resp["AuthenticationResult"])
 
     def get_new_token(self, username: str, password: str) -> AuthenticationTokens:
@@ -79,6 +85,7 @@ class AwsCognitoAuthenticator:
         Returns:
             The new authentication tokens.
         """
+        _LOGGER.debug("Getting new token")
         cognito_identity_provider = boto3.client("cognito-idp", self.region_name)
         # Start the authentication flow
         aws_srp = AWSSRP(
@@ -89,12 +96,16 @@ class AwsCognitoAuthenticator:
             client=cognito_identity_provider,
         )
 
+        _LOGGER.debug("Initiating auth")
+
         auth_params = aws_srp.get_auth_params()
         resp = cognito_identity_provider.initiate_auth(
             AuthFlow="USER_SRP_AUTH",
             AuthParameters=auth_params,
             ClientId=self.client_id,
         )
+
+        _LOGGER.debug("Auth initiated, responding to challenge")
 
         challenge_response = aws_srp.process_challenge(
             resp["ChallengeParameters"],
@@ -107,4 +118,7 @@ class AwsCognitoAuthenticator:
             ChallengeName="PASSWORD_VERIFIER",
             ChallengeResponses=challenge_response,
         )
+
+        _LOGGER.debug("Token received")
+
         return AuthenticationTokens(resp["AuthenticationResult"])
