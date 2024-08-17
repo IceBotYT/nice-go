@@ -5,12 +5,13 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from nice_go._aws_cognito_authenticator import AwsCognitoAuthenticator
 from nice_go._ws_client import WebSocketClient
 from nice_go.nice_go_api import NiceGOApi
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_api() -> NiceGOApi:
     """Mocked NiceGOApi instance."""
     api = NiceGOApi()
@@ -23,7 +24,7 @@ def mock_api() -> NiceGOApi:
     return api
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_ws_client() -> WebSocketClient:
     """Mocked WebSocketClient instance."""
     ws = WebSocketClient()
@@ -34,7 +35,7 @@ def mock_ws_client() -> WebSocketClient:
     return ws
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_authenticator() -> AwsCognitoAuthenticator:
     """Mocked AwsCognitoAuthenticator instance."""
     return AwsCognitoAuthenticator(

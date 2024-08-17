@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 import yarl
+
 from nice_go import WebSocketError
 from nice_go._ws_client import EventListener, WebSocketClient
 
