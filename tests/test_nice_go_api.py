@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import botocore
 import pytest
+
 from nice_go import (
     ApiError,
     AuthFailedError,

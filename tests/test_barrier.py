@@ -1,6 +1,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from nice_go import Barrier
 from nice_go._barrier import BarrierState
 
