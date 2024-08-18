@@ -48,6 +48,19 @@ class WebSocketClient:
         self._dispatch_listeners: list[EventListener] = []
         self._subscriptions: list[str] = []
 
+    def _redact_message(self, message: str | dict[str, Any]) -> Any:
+        """Redact sensitive information from a message.
+
+        Args:
+            message: The message to redact.
+
+        Returns:
+            The redacted message.
+        """
+        if isinstance(message, dict):
+            return json.loads(json.dumps(message).replace(self.id_token, "<REDACTED>"))
+        return message.replace(self.id_token, "<REDACTED>")
+
     async def connect(
         self,
         client_session: aiohttp.ClientSession,
@@ -132,7 +145,8 @@ class WebSocketClient:
         if self.ws is None or self.ws.closed:
             msg = "WebSocket connection is closed"
             raise WebSocketError(msg)
-        _LOGGER.debug("Sending message: %s", message)
+        redacted_message = self._redact_message(message)
+        _LOGGER.debug("Sending message: %s", redacted_message)
         if isinstance(message, dict):
             await self.ws.send_json(message)
         else:
