@@ -62,4 +62,20 @@ REQUEST_TEMPLATES = {
         "type": "start",
     },
     "unsubscribe": {"id": "$id", "type": "stop"},
+    "vacation_mode_on": {
+        "operationName": "devicesStatesUpdate",
+        "variables": {
+            "deviceId": "$barrier_id",
+            "state": '{"vcnMode": true}',
+        },
+        "query": "mutation devicesStatesUpdate($deviceId: ID!, $state: AWSJSON!) {\n  devicesStatesUpdate(deviceId: $deviceId, state: $state)\n}\n",  # noqa: E501
+    },
+    "vacation_mode_off": {
+        "operationName": "devicesStatesUpdate",
+        "variables": {
+            "deviceId": "$barrier_id",
+            "state": '{"vcnMode": false}',
+        },
+        "query": "mutation devicesStatesUpdate($deviceId: ID!, $state: AWSJSON!) {\n  devicesStatesUpdate(deviceId: $deviceId, state: $state)\n}\n",  # noqa: E501
+    },
 }

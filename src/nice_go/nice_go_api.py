@@ -625,3 +625,77 @@ class NiceGOApi:
         result: bool = data["data"]["devicesControl"]
 
         return result
+
+    async def vacation_mode_on(self, barrier_id: str) -> None:
+        """Turn vacation mode on.
+
+        Args:
+            barrier_id (str): The ID of the barrier to turn vacation mode on.
+
+        Raises:
+            NoAuthError: If the ID token is not available.
+            ValueError: If the ClientSession or Endpoints are not available.
+            ApiError: If an API error occurs.
+        """
+        if self.id_token is None:
+            raise NoAuthError
+        if self._session is None:
+            msg = "ClientSession not provided"
+            raise ValueError(msg)
+        if self._endpoints is None:
+            msg = "Endpoints not available"
+            raise ApiError(msg)
+
+        api_url = self._endpoints["GraphQL"]["device"]["https"]
+
+        _LOGGER.debug("Turning vacation mode on for barrier %s", barrier_id)
+        _LOGGER.debug("API URL: %s", api_url)
+
+        headers = {"Authorization": self.id_token, "Content-Type": "application/json"}
+
+        response = await self._session.post(
+            api_url,
+            headers=headers,
+            json=await get_request_template(
+                "vacation_mode_on",
+                {"barrier_id": barrier_id},
+            ),
+        )
+        await response.json()
+
+    async def vacation_mode_off(self, barrier_id: str) -> None:
+        """Turn vacation mode off.
+
+        Args:
+            barrier_id (str): The ID of the barrier to turn vacation mode off.
+
+        Raises:
+            NoAuthError: If the ID token is not available.
+            ValueError: If the ClientSession or Endpoints are not available.
+            ApiError: If an API error occurs.
+        """
+        if self.id_token is None:
+            raise NoAuthError
+        if self._session is None:
+            msg = "ClientSession not provided"
+            raise ValueError(msg)
+        if self._endpoints is None:
+            msg = "Endpoints not available"
+            raise ApiError(msg)
+
+        api_url = self._endpoints["GraphQL"]["device"]["https"]
+
+        _LOGGER.debug("Turning vacation mode off for barrier %s", barrier_id)
+        _LOGGER.debug("API URL: %s", api_url)
+
+        headers = {"Authorization": self.id_token, "Content-Type": "application/json"}
+
+        response = await self._session.post(
+            api_url,
+            headers=headers,
+            json=await get_request_template(
+                "vacation_mode_off",
+                {"barrier_id": barrier_id},
+            ),
+        )
+        await response.json()

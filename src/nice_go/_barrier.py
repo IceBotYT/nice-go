@@ -135,3 +135,19 @@ class Barrier:
             msg = f"Attribute with key {key} not found."
             raise KeyError(msg)
         return attr["value"]
+
+    async def vacation_mode_on(self) -> None:
+        """Turn on vacation mode for the barrier.
+
+        Returns:
+            A boolean indicating whether the command was successful.
+        """
+        await self.api.vacation_mode_on(self.id)
+
+    async def vacation_mode_off(self) -> None:
+        """Turn off vacation mode for the barrier.
+
+        Returns:
+            A boolean indicating whether the command was successful.
+        """
+        await self.api.vacation_mode_off(self.id)
