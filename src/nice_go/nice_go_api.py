@@ -24,13 +24,7 @@ import yarl
 from nice_go._aws_cognito_authenticator import AwsCognitoAuthenticator
 from nice_go._backoff import ExponentialBackoff
 from nice_go._barrier import Barrier, BarrierState, ConnectionState
-from nice_go._const import (
-    CLIENT_ID,
-    ENDPOINTS_URL,
-    IDENTITY_POOL_ID,
-    POOL_ID,
-    REGION_NAME,
-)
+from nice_go._const import ENDPOINTS_URL
 from nice_go._exceptions import (
     ApiError,
     AuthFailedError,
@@ -75,13 +69,6 @@ class NiceGOApi:
         self._endpoints: dict[str, Any] | None = None
         self._session: aiohttp.ClientSession | None = None
         self._event_tasks: set[asyncio.Task[None]] = set()
-
-        self._authenticator = AwsCognitoAuthenticator(
-            REGION_NAME,
-            CLIENT_ID,
-            POOL_ID,
-            IDENTITY_POOL_ID,
-        )
 
     def event(self, coro: CoroT) -> CoroT:
         """Decorator to add an event listener.
@@ -240,30 +227,42 @@ class NiceGOApi:
         """
         try:
             _LOGGER.debug("Authenticating")
+
+            if self._session is None:
+                msg = "ClientSession not provided"
+                raise ValueError(msg)
+
+            # Get the endpoints
+            data = await self._session.get(ENDPOINTS_URL)
+            endpoints = await data.json()
+            self._endpoints = endpoints["endpoints"]
+
+            if self._endpoints is None:
+                msg = "Endpoints not available"
+                raise ApiError(msg)
+
+            authenticator = AwsCognitoAuthenticator(
+                self._endpoints["Config"]["Region"],
+                self._endpoints["Config"]["ClientId"],
+                self._endpoints["Config"]["UserPoolId"],
+                self._endpoints["Config"]["IdentityPoolId"],
+            )
+
             if user_name and password:
                 token = await asyncio.to_thread(
-                    self._authenticator.get_new_token,
+                    authenticator.get_new_token,
                     user_name,
                     password,
                 )
             elif refresh_token:
                 token = await asyncio.to_thread(
-                    self._authenticator.refresh_token,
+                    authenticator.refresh_token,
                     refresh_token,
                 )
 
             _LOGGER.debug("Authenticated")
 
             self.id_token = token.id_token
-
-            if self._session is None:
-                msg = "ClientSession not provided"
-                raise ValueError(msg)
-
-            # Get the endpoints while we're at it
-            data = await self._session.get(ENDPOINTS_URL)
-            endpoints = await data.json()
-            self._endpoints = endpoints["endpoints"]
         except botocore.exceptions.ClientError as e:
             _LOGGER.exception("Exception while authenticating")
             if e.response["Error"]["Code"] == "NotAuthorizedException":

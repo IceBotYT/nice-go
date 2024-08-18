@@ -2,10 +2,6 @@
 
 import json
 
-REGION_NAME = "us-east-1"
-CLIENT_ID = "7n60jidir1ot3shtmi4epunh78"
-IDENTITY_POOL_ID = f"{REGION_NAME}:59ad2b22-e3c3-493d-b84e-77892c908271"
-POOL_ID = f"{REGION_NAME}_jWA3SVOLe"
 ENDPOINTS_URL = "https://prod.api.nortek-smartcontrol.com/endpoints"
 BARRIER_STATUS = ["STATIONARY", "OPENING", "CLOSING"]
 REQUEST_TEMPLATES = {

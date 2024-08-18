@@ -16,7 +16,6 @@ def mock_api() -> NiceGOApi:
     """Mocked NiceGOApi instance."""
     api = NiceGOApi()
     api._session = AsyncMock()
-    api._authenticator = MagicMock()
     api._ws = AsyncMock()
     api._endpoints = {
         "GraphQL": {"device": {"wss": "wss://test", "https": "https://test"}},

@@ -381,3 +381,20 @@ async def test_no_endpoints(
     method = getattr(mock_api, method_name)
     with pytest.raises(ApiError, match="Endpoints not available"):
         await method(*args)
+
+
+async def test_auth_no_endpoints(
+    mock_api: NiceGOApi,
+) -> None:
+    mock_api._session = AsyncMock(
+        get=AsyncMock(
+            return_value=AsyncMock(
+                json=AsyncMock(
+                    return_value={"endpoints": None},
+                ),
+            ),
+        ),
+    )
+
+    with pytest.raises(ApiError, match="Endpoints not available"):
+        await mock_api.authenticate("username", "password", mock_api._session)
