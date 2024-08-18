@@ -16,9 +16,18 @@ def mock_api() -> NiceGOApi:
     """Mocked NiceGOApi instance."""
     api = NiceGOApi()
     api._session = AsyncMock()
-    api._ws = AsyncMock()
+    api._device_ws = AsyncMock()
     api._endpoints = {
-        "GraphQL": {"device": {"wss": "wss://test", "https": "https://test"}},
+        "GraphQL": {
+            "device": {
+                "wss": "wss://test",
+                "https": "https://test",
+            },
+            "events": {
+                "wss": "wss://test",
+                "https": "https://test",
+            },
+        },
     }
     return api
 
@@ -26,7 +35,7 @@ def mock_api() -> NiceGOApi:
 @pytest.fixture
 def mock_ws_client() -> WebSocketClient:
     """Mocked WebSocketClient instance."""
-    ws = WebSocketClient()
+    ws = WebSocketClient(client_session=MagicMock())
     ws.ws = AsyncMock(closed=False)
     ws._dispatch = MagicMock()
     ws.id_token = "test_token"

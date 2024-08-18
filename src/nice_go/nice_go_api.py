@@ -65,10 +65,33 @@ class NiceGOApi:
         """Initialize the NiceGOApi object."""
         self.id_token: str | None = None
         self._closing_task: asyncio.Task[None] | None = None
-        self._ws: WebSocketClient | None = None
+        self._device_ws: WebSocketClient | None = None
         self._endpoints: dict[str, Any] | None = None
         self._session: aiohttp.ClientSession | None = None
         self._event_tasks: set[asyncio.Task[None]] = set()
+        self._events_ws: WebSocketClient | None = None
+        self._device_connected: bool = False
+        self._events_connected: bool = False
+
+    async def on_device_connected(self) -> None:
+        """Handle the device connected event.
+
+        Args:
+            data (dict[str, Any]): The data received from the event.
+        """
+        self._device_connected = True
+        if self._device_connected and self._events_connected:
+            self._dispatch("connected")
+
+    async def on_events_connected(self) -> None:
+        """Handle the events connected event.
+
+        Args:
+            data (dict[str, Any]): The data received from the event.
+        """
+        self._events_connected = True
+        if self._device_connected and self._events_connected:
+            self._dispatch("connected")
 
     def event(self, coro: CoroT) -> CoroT:
         """Decorator to add an event listener.
@@ -276,6 +299,33 @@ class NiceGOApi:
         """Check if the connection is closed."""
         return self._closing_task is not None
 
+    async def _poll_device_ws(self) -> None:
+        """Continuously polls the device WebSocket to maintain an active connection.
+        This function will repeatedly call the poll method on the WebSocket if it is
+        initialized.
+
+        Returns:
+            None
+        """
+        if self._device_ws is None:
+            return
+        while True:
+            await self._device_ws.poll()
+
+    async def _poll_events_ws(self) -> None:
+        """Continuously polls the device WebSocket to maintain an active connection.
+        This function will repeatedly call the poll method on the WebSocket if it is
+        initialized.
+
+        Returns:
+            None
+        """
+
+        if self._events_ws is None:
+            return
+        while True:
+            await self._events_ws.poll()
+
     async def connect(self, *, reconnect: bool = True) -> None:
         """Connect to the WebSocket API.
 
@@ -312,23 +362,34 @@ class NiceGOApi:
                     msg = "ClientSession not provided"
                     raise ValueError(msg)
 
-                api_url = self._endpoints["GraphQL"]["device"]["wss"]
+                device_url = self._endpoints["GraphQL"]["device"]["wss"]
+                events_url = self._endpoints["GraphQL"]["events"]["wss"]
 
-                _LOGGER.debug("Connecting to WebSocket API %s", api_url)
+                _LOGGER.debug("Connecting to WebSocket API %s", device_url)
 
-                self._ws = WebSocketClient()
-                await self._ws.connect(
-                    self._session,
+                self._device_ws = WebSocketClient(client_session=self._session)
+                await self._device_ws.connect(
                     self.id_token,
-                    yarl.URL(api_url),
+                    yarl.URL(device_url),
+                    "device",
                     self._dispatch,
                     yarl.URL(self._endpoints["GraphQL"]["device"]["https"]).host,
+                )
+                self._events_ws = WebSocketClient(client_session=self._session)
+                await self._events_ws.connect(
+                    self.id_token,
+                    yarl.URL(events_url),
+                    "events",
+                    self._dispatch,
+                    yarl.URL(self._endpoints["GraphQL"]["events"]["https"]).host,
                 )
 
                 _LOGGER.debug("Connected to WebSocket API")
 
-                while True:
-                    await self._ws.poll()
+                device_task = asyncio.create_task(self._poll_device_ws())
+                events_task = asyncio.create_task(self._poll_events_ws())
+
+                await asyncio.gather(device_task, events_task)
         except (
             OSError,
             WebSocketError,
@@ -336,6 +397,8 @@ class NiceGOApi:
             asyncio.TimeoutError,
         ) as e:
             self._dispatch("connection_lost", {"exception": e})
+            self._device_connected = False
+            self._events_connected = False
             if not reconnect:
                 _LOGGER.debug("Connection lost, not reconnecting")
                 await self.close()
@@ -348,26 +411,32 @@ class NiceGOApi:
             _LOGGER.debug("Connection lost, retrying in %s seconds", retry)
             await asyncio.sleep(retry)
 
-    async def subscribe(self, receiver: str) -> str:
+    async def subscribe(self, receiver: str) -> list[str]:
         """Subscribe to a receiver.
 
         Args:
             receiver (str): The receiver to subscribe to.
 
         Returns:
-            The subscription ID. You can pass this into the `unsubscribe` method to
+            The subscription IDs. You can pass this into the `unsubscribe` method to
                 unsubscribe from the receiver.
 
         Raises:
             WebSocketError: If no WebSocket connection is available.
         """
-        if self._ws is None:
+        if self._device_ws is None:
+            msg = "No WebSocket connection"
+            raise WebSocketError(msg)
+        if self._events_ws is None:
             msg = "No WebSocket connection"
             raise WebSocketError(msg)
 
         _LOGGER.debug("Subscribing to receiver %s", receiver)
 
-        return await self._ws.subscribe(receiver)
+        return [
+            await self._device_ws.subscribe(receiver),
+            await self._events_ws.subscribe(receiver),
+        ]
 
     async def unsubscribe(self, subscription_id: str) -> None:
         """Unsubscribe from a receiver.
@@ -378,13 +447,17 @@ class NiceGOApi:
         Raises:
             WebSocketError: If no WebSocket connection is available
         """
-        if self._ws is None:
+        if self._device_ws is None:
+            msg = "No WebSocket connection"
+            raise WebSocketError(msg)
+        if self._events_ws is None:
             msg = "No WebSocket connection"
             raise WebSocketError(msg)
 
         _LOGGER.debug("Unsubscribing from subscription %s", subscription_id)
 
-        await self._ws.unsubscribe(subscription_id)
+        await self._device_ws.unsubscribe(subscription_id)
+        await self._events_ws.unsubscribe(subscription_id)
 
     async def close(self) -> None:
         """Close the connection.
@@ -394,8 +467,10 @@ class NiceGOApi:
         """
 
         async def _close() -> None:
-            if self._ws:
-                await self._ws.close()
+            if self._device_ws:
+                await self._device_ws.close()
+            if self._events_ws:
+                await self._events_ws.close()
 
         _LOGGER.debug("Closing connection")
 

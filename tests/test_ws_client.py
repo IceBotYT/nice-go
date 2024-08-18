@@ -23,11 +23,12 @@ async def test_ws_connect(mock_ws_client: WebSocketClient) -> None:
     mock_session.ws_connect.return_value.receive.return_value = MagicMock(
         data=json.dumps({"type": "connection_ack"}),
     )
+    mock_ws_client.client_session = mock_session
     mock_ws_client._dispatch = MagicMock()
     await mock_ws_client.connect(
-        mock_session,
         "test_token",
         yarl.URL("wss://test_endpoint"),
+        "events",
         MagicMock(),
         "test_host",
     )
@@ -87,6 +88,8 @@ async def test_ws_subscribe_and_close(mock_ws_client: WebSocketClient) -> None:
         type=aiohttp.WSMsgType.TEXT,
     )
 
+    mock_ws_client.api_type = "events"
+
     with patch("nice_go._ws_client.uuid.uuid4") as mock_uuid:
         mock_uuid.return_value = subscription_id
         subscribe_task = asyncio.create_task(mock_ws_client.subscribe("test_query"))
@@ -123,6 +126,7 @@ async def test_ws_poll_errors(
 
 async def test_ws_received_message(mock_ws_client: WebSocketClient) -> None:
     mock_ws_client._dispatch = MagicMock()
+    mock_ws_client.api_type = "device"
     await mock_ws_client.received_message(
         json.dumps({"type": "data", "payload": "test_payload"}),
     )
@@ -146,6 +150,7 @@ async def test_ws_received_message_dispatch_listener_skip_type(
             result=MagicMock(),
         ),
     ]
+    mock_ws_client.api_type = "device"
     await mock_ws_client.received_message(
         json.dumps({"type": "data", "payload": "test_payload"}),
     )
@@ -163,6 +168,7 @@ async def test_ws_received_message_dispatch_listener_cancelled(
             result=MagicMock(),
         ),
     ]
+    mock_ws_client.api_type = "device"
     await mock_ws_client.received_message(
         json.dumps({"type": "data", "payload": "test_payload"}),
     )
@@ -180,6 +186,7 @@ async def test_ws_received_message_dispatch_listener_predicate_exception(
             result=MagicMock(),
         ),
     ]
+    mock_ws_client.api_type = "device"
     await mock_ws_client.received_message(
         json.dumps({"type": "data", "payload": "test_payload"}),
     )
@@ -189,6 +196,7 @@ async def test_ws_received_message_dispatch_listener_predicate_exception(
 async def test_subscribe_timeout(mock_ws_client: WebSocketClient) -> None:
     with patch("nice_go._ws_client.asyncio.wait_for") as mock_wait_for:
         mock_wait_for.side_effect = asyncio.TimeoutError
+    mock_ws_client.api_type = "events"
     with pytest.raises(WebSocketError):
         await mock_ws_client.subscribe("test_query")
 
@@ -217,9 +225,9 @@ async def test_closed_property(mock_ws_client: WebSocketClient) -> None:
 async def test_connect_no_host(mock_ws_client: WebSocketClient) -> None:
     with pytest.raises(ValueError, match="host must be provided"):
         await mock_ws_client.connect(
-            MagicMock(),
             "test_token",
             yarl.URL("wss://test_endpoint"),
+            "events",
             MagicMock(),
             None,
         )
@@ -263,6 +271,7 @@ async def test_received_message_no_predicate(
             result=MagicMock(),
         ),
     ]
+    mock_ws_client.api_type = "device"
     await mock_ws_client.received_message(
         json.dumps({"type": "data", "payload": "test_payload"}),
     )

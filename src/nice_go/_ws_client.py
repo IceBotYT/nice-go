@@ -43,10 +43,11 @@ class WebSocketClient:
         _subscriptions (list[str]): A list of subscription IDs.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, client_session: aiohttp.ClientSession) -> None:
         self.ws: aiohttp.ClientWebSocketResponse | None = None
         self._dispatch_listeners: list[EventListener] = []
         self._subscriptions: list[str] = []
+        self.client_session = client_session
 
     def _redact_message(self, message: str | dict[str, Any]) -> Any:
         """Redact sensitive information from a message.
@@ -63,9 +64,9 @@ class WebSocketClient:
 
     async def connect(
         self,
-        client_session: aiohttp.ClientSession,
         id_token: str,
         endpoint: yarl.URL,
+        api_type: str,
         dispatch: Callable[[str, dict[str, Any] | None], None],
         host: str | None = None,
     ) -> None:
@@ -85,9 +86,11 @@ class WebSocketClient:
         if host is None:
             msg = "host must be provided"
             raise ValueError(msg)
+
         self._dispatch = dispatch
         self.id_token = id_token
         self.host = host
+        self.api_type = api_type  # Should be "device" or "events"
 
         raw_header = {
             "Authorization": id_token,
@@ -102,7 +105,7 @@ class WebSocketClient:
         _LOGGER.debug("Connecting to WebSocket server at %s", endpoint)
 
         headers = {"sec-websocket-protocol": "graphql-ws"}
-        self.ws = await client_session.ws_connect(url, headers=headers)
+        self.ws = await self.client_session.ws_connect(url, headers=headers)
 
         await self.init()
 
@@ -131,7 +134,7 @@ class WebSocketClient:
             raise WebSocketError(msg) from e
         _LOGGER.debug("Received connection_ack, WebSocket connection established")
 
-        self._dispatch("connected", None)
+        self._dispatch(f"{self.api_type}_connected", None)
 
     async def send(self, message: str | dict[str, Any]) -> None:
         """Send a message to the WebSocket server.
@@ -222,6 +225,16 @@ class WebSocketClient:
             WebSocketError: If the message type is not valid.
         """
         if message["type"] == "data":
+            if self.api_type == "events" and message["payload"]["data"]["eventsFeed"][
+                "item"
+            ]["eventId"] == ("event-error-barrier-obstructed"):
+                self._dispatch(
+                    "barrier_obstructed",
+                    message["payload"]["data"]["eventsFeed"]["item"],
+                )
+            if self.api_type == "events":
+                return
+
             self._dispatch(message["type"], message["payload"])
         elif message["type"] == "error":
             msg = f"Received error message: {message}"
@@ -319,7 +332,7 @@ class WebSocketClient:
         """
         subscription_id = str(uuid.uuid4())
         payload = await get_request_template(
-            "subscribe",
+            "subscribe" if self.api_type == "device" else "event_subscribe",
             {
                 "receiver_id": receiver,
                 "uuid": subscription_id,
@@ -364,11 +377,17 @@ class WebSocketClient:
         Raises:
             WebSocketError: If the WebSocket connection is closed
         """
-        payload = await get_request_template("unsubscribe", {"id": subscription_id})
-        _LOGGER.debug("Unsubscribing from subscription %s", subscription_id)
-        await self.send(payload)
-        self._subscriptions.remove(subscription_id)
-        _LOGGER.debug("Unsubscribed from subscription %s", subscription_id)
+        try:
+            self._subscriptions.remove(subscription_id)
+        except ValueError:
+            _LOGGER.debug("Subscription %s not found", subscription_id)
+            return
+        finally:
+            _LOGGER.debug("Removing subscription %s", subscription_id)
+            payload = await get_request_template("unsubscribe", {"id": subscription_id})
+            _LOGGER.debug("Unsubscribing from subscription %s", subscription_id)
+            await self.send(payload)
+            _LOGGER.debug("Unsubscribed from subscription %s", subscription_id)
 
     @property
     def closed(self) -> bool:

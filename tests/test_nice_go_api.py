@@ -113,13 +113,13 @@ async def test_connect_no_endpoints(mock_api: NiceGOApi) -> None:
 
 
 async def test_subscribe_no_ws(mock_api: NiceGOApi) -> None:
-    mock_api._ws = None
+    mock_api._device_ws = None
     with pytest.raises(WebSocketError):
         await mock_api.subscribe("receiver")
 
 
 async def test_unsubscribe_no_ws(mock_api: NiceGOApi) -> None:
-    mock_api._ws = None
+    mock_api._device_ws = None
     with pytest.raises(WebSocketError):
         await mock_api.unsubscribe("receiver")
 
@@ -236,7 +236,8 @@ async def test_connect_error(mock_api: NiceGOApi) -> None:
         mock_ws_client_instance.poll.side_effect = WebSocketError()
         with pytest.raises(WebSocketError):
             await mock_api.connect(reconnect=False)
-        mock_ws_client_instance.connect.assert_called_once()
+        expected_call_count = 2
+        assert mock_ws_client_instance.connect.call_count == expected_call_count
 
 
 async def test_connect_closed(mock_api: NiceGOApi) -> None:
@@ -253,7 +254,8 @@ async def test_connect_closed(mock_api: NiceGOApi) -> None:
 
         mock_ws_client_instance.poll.side_effect = side_effect
         await mock_api.connect(reconnect=True)
-        mock_ws_client_instance.connect.assert_called_once()
+        expected_call_count = 2
+        assert mock_ws_client_instance.connect.call_count == expected_call_count
 
 
 async def test_connect_reconnect(mock_api: NiceGOApi) -> None:
@@ -265,22 +267,27 @@ async def test_connect_reconnect(mock_api: NiceGOApi) -> None:
         mock_ws_client_instance.poll.side_effect = [WebSocketError(), None]
         with suppress(StopAsyncIteration):
             await mock_api.connect(reconnect=True)
-        mock_ws_client_instance.connect.assert_called_once()
+        expected_call_count = 2
+        assert mock_ws_client_instance.connect.call_count == expected_call_count
 
 
 async def test_subscribe(mock_api: NiceGOApi) -> None:
     mock_api.id_token = "test_token"
-    mock_api._ws = AsyncMock()
-    mock_api._ws.subscribe.return_value = "test_id"
+    mock_api._device_ws = AsyncMock()
+    mock_api._device_ws.subscribe.return_value = "test_id"
+    mock_api._events_ws = AsyncMock()
+    mock_api._events_ws.subscribe.return_value = "test_id_2"
     result = await mock_api.subscribe("receiver")
-    assert result == "test_id"
+    assert result == ["test_id", "test_id_2"]
 
 
 async def test_unsubscribe(mock_api: NiceGOApi) -> None:
     mock_api.id_token = "test_token"
-    mock_api._ws = AsyncMock()
+    mock_api._device_ws = AsyncMock()
+    mock_api._events_ws = AsyncMock()
     await mock_api.unsubscribe("test_id")
-    mock_api._ws.unsubscribe.assert_called_once_with("test_id")
+    mock_api._device_ws.unsubscribe.assert_called_once_with("test_id")
+    mock_api._events_ws.unsubscribe.assert_called_once_with("test_id")
 
 
 async def test_get_all_barriers(

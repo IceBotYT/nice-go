@@ -78,4 +78,25 @@ REQUEST_TEMPLATES = {
         },
         "query": "mutation devicesStatesUpdate($deviceId: ID!, $state: AWSJSON!) {\n  devicesStatesUpdate(deviceId: $deviceId, state: $state)\n}\n",  # noqa: E501
     },
+    "event_subscribe": {
+        "id": "$uuid",
+        "payload": {
+            "data": json.dumps(
+                {
+                    "query": "subscription eventsFeed($receiver: ID!) {\n  eventsFeed(receiver: $receiver) {\n    receiver\n    item {\n      ...eventFields\n      __typename\n    }\n    __typename\n  }\n}\n\nfragment eventFields on Event {\n  deviceId\n  timestamp\n  eventId\n  organizationId\n  updatedTimestamp\n  type\n  eventState\n  severity\n  sensorName\n  sensorValue\n  metadata\n  __typename\n}\n",  # noqa: E501
+                    "variables": {
+                        "receiver": "$receiver_id",
+                    },
+                },
+            ),
+            "extensions": {
+                "authorization": {
+                    "Authorization": "$id_token",
+                    "host": "$host",
+                    "x-amz-user-agent": "aws-amplify/2.0.8 react-native",
+                },
+            },
+        },
+        "type": "start",
+    },
 }
