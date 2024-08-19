@@ -81,7 +81,7 @@ async def test_schedule_event(mock_api: NiceGOApi) -> None:
 
 async def test_dispatch_event(mock_api: NiceGOApi) -> None:
     coro = AsyncMock()
-    mock_api.on_test_event = coro  # type: ignore[attr-defined]
+    mock_api._events["on_test_event"] = [coro]
     mock_api._dispatch("test_event", {"key": "value"})
     await asyncio.sleep(0)  # Allow the event loop to run
     coro.assert_called_once()
@@ -172,8 +172,8 @@ async def test_event_decorator(mock_api: NiceGOApi) -> None:
     async def on_test_event(data: dict[str, Any]) -> None:
         pass
 
-    assert "on_test_event" in dir(mock_api)
-    assert mock_api.on_test_event == on_test_event  # type: ignore[attr-defined]
+    assert "on_test_event" in mock_api._events
+    assert mock_api._events["on_test_event"][0] == on_test_event
     mock_api._dispatch("test_event", {})
 
 
@@ -191,7 +191,7 @@ async def test_sync_event_decorator(mock_api: NiceGOApi) -> None:
 async def test_run_event_errors(mock_api: NiceGOApi, error: Exception) -> None:
     coro = AsyncMock()
     coro.side_effect = error
-    mock_api.on_test_event = coro  # type: ignore[attr-defined]
+    mock_api._events["on_test_event"] = [coro]
     mock_api._dispatch("test_event", {})
     await asyncio.sleep(0)  # Allow the event loop to run
     coro.assert_called_once()

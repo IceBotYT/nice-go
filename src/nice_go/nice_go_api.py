@@ -177,14 +177,15 @@ class NiceGOApi:
         """
         method = f"on_{event}"
 
-        try:
-            coros = self._events.get(method, [])
-        except AttributeError:
-            pass
-        else:
-            _LOGGER.debug("Dispatching event %s", event)
-            for coro in coros:
-                self._schedule_event(coro, method, data)
+        coros = self._events.get(method, [])
+
+        if not coros:
+            _LOGGER.debug("No listeners for event %s", event)
+            return
+
+        _LOGGER.debug("Dispatching event %s", event)
+        for coro in coros:
+            self._schedule_event(coro, method, data)
 
     async def authenticate_refresh(
         self,
