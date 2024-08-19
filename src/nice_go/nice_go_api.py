@@ -92,7 +92,7 @@ class NiceGOApi:
             self._dispatch("connected")
 
     def event(self, coro: CoroT) -> CoroT:
-        """Decorator to add an event listener.
+        """Decorator to add an event listener. Just a wrapper around `listen`.
 
         Info:
             This can only decorate coroutine functions.
@@ -118,14 +118,44 @@ class NiceGOApi:
             ...     if data is not None:
             ...         print(data)
         """
+        self.listen(coro.__name__, coro)
+        return coro
+
+    def listen(self, event_name: str, coro: CoroT) -> Callable[[], None]:
+        """Add an event listener.
+
+        Args:
+            event_name (str): The name of the event.
+            coro (CoroT): The coroutine to run when the event is dispatched.
+
+        Returns:
+            A function to remove the event listener.
+
+        Examples:
+            You can use this method to add event listeners to the API object.
+            Some events include but are not limited to:
+
+            - `connection_lost`: Triggered when the connection to the WebSocket API is
+                lost.
+            - `connected`: Triggered when the connection to the WebSocket API is
+                established.
+            - `data`: Triggered when data is received from an active subscription.
+                See `subscribe`.
+
+            >>> def on_data(data: dict[str, Any] | None = None) -> None:
+            ...     if data is not None:
+            ...         print(data)
+            ...
+            >>> remove_listener = api.listen("data", on_data)
+        """
         if not asyncio.iscoroutinefunction(coro):
             msg = "The decorated function must be a coroutine"
             raise TypeError(msg)
 
         _LOGGER.debug("Adding event listener %s", coro.__name__)
 
-        self._events.setdefault(coro.__name__, []).append(coro)
-        return coro
+        self._events.setdefault(event_name, []).append(coro)
+        return lambda: self._events[event_name].remove(coro)
 
     async def _run_event(
         self,
