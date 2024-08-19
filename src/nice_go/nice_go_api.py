@@ -391,7 +391,14 @@ class NiceGOApi:
                 device_task = asyncio.create_task(self._poll_device_ws())
                 events_task = asyncio.create_task(self._poll_events_ws())
 
-                await asyncio.gather(device_task, events_task)
+                results = await asyncio.gather(
+                    device_task,
+                    events_task,
+                    return_exceptions=True,
+                )
+                for result in results:
+                    if isinstance(result, Exception):
+                        raise result
         except (
             OSError,
             WebSocketError,
