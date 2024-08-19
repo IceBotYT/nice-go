@@ -81,6 +81,7 @@ class NiceGOApi:
         """
         self._device_connected = True
         if self._device_connected and self._events_connected:
+            # Only dispatch when both feeds are connected
             self._dispatch("connected")
 
     async def on_events_connected(self) -> None:
@@ -91,6 +92,7 @@ class NiceGOApi:
         """
         self._events_connected = True
         if self._device_connected and self._events_connected:
+            # Only dispatch when both feeds are connected
             self._dispatch("connected")
 
     def event(self, coro: CoroT) -> CoroT:
