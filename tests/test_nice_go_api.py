@@ -116,10 +116,18 @@ async def test_subscribe_no_ws(mock_api: NiceGOApi) -> None:
     mock_api._device_ws = None
     with pytest.raises(WebSocketError):
         await mock_api.subscribe("receiver")
+    mock_api._device_ws = AsyncMock()
+    mock_api._events_ws = None
+    with pytest.raises(WebSocketError):
+        await mock_api.subscribe("receiver")
 
 
 async def test_unsubscribe_no_ws(mock_api: NiceGOApi) -> None:
     mock_api._device_ws = None
+    with pytest.raises(WebSocketError):
+        await mock_api.unsubscribe("receiver")
+    mock_api._device_ws = AsyncMock()
+    mock_api._events_ws = None
     with pytest.raises(WebSocketError):
         await mock_api.unsubscribe("receiver")
 
@@ -131,22 +139,24 @@ async def test_get_all_barriers_not_authenticated(mock_api: NiceGOApi) -> None:
 
 
 @pytest.mark.parametrize(
-    ("method_name", "query"),
+    ("method_name", "expected_result"),
     [
-        ("open_barrier", "open_barrier"),
-        ("close_barrier", "close_barrier"),
-        ("light_on", "light_on"),
-        ("light_off", "light_off"),
+        ("open_barrier", True),
+        ("close_barrier", True),
+        ("light_on", True),
+        ("light_off", True),
+        ("vacation_mode_on", None),
+        ("vacation_mode_off", None),
     ],
 )
 async def test_barrier_operations(
     mock_api: NiceGOApi,
     method_name: str,
-    query: str,
+    expected_result: Any,
 ) -> None:
     with patch("nice_go.nice_go_api.get_request_template") as mock_get_request_template:
         mock_api.id_token = "test_token"
-        mock_get_request_template.return_value = {"query": query}
+        mock_get_request_template.return_value = {"query": method_name}
         assert mock_api._session is not None
         assert isinstance(mock_api._session, AsyncMock)
         mock_api._session.post.return_value.json.return_value = {
@@ -154,7 +164,7 @@ async def test_barrier_operations(
         }
         method = getattr(mock_api, method_name)
         result = await method("barrier_id")
-        assert result is True
+        assert result is expected_result
 
 
 async def test_event_decorator(mock_api: NiceGOApi) -> None:
@@ -331,6 +341,8 @@ async def test_get_all_barriers_no_connection_state(
         ("close_barrier"),
         ("light_on"),
         ("light_off"),
+        ("vacation_mode_on"),
+        ("vacation_mode_off"),
     ],
 )
 async def test_barrier_operations_no_auth(
@@ -353,6 +365,8 @@ async def test_barrier_operations_no_auth(
         ("close_barrier", ("barrier_id",)),
         ("light_on", ("barrier_id",)),
         ("light_off", ("barrier_id",)),
+        ("vacation_mode_on", ("barrier_id",)),
+        ("vacation_mode_off", ("barrier_id",)),
     ],
 )
 async def test_no_client_session(
@@ -376,6 +390,8 @@ async def test_no_client_session(
         ("close_barrier", ("barrier_id",)),
         ("light_on", ("barrier_id",)),
         ("light_off", ("barrier_id",)),
+        ("vacation_mode_on", ("barrier_id",)),
+        ("vacation_mode_off", ("barrier_id",)),
     ],
 )
 async def test_no_endpoints(
@@ -405,3 +421,24 @@ async def test_auth_no_endpoints(
 
     with pytest.raises(ApiError, match="Endpoints not available"):
         await mock_api.authenticate("username", "password", mock_api._session)
+
+
+async def test_on_device_connected(mock_api: NiceGOApi) -> None:
+    mock_api._events_connected = True
+    coro = AsyncMock()
+    mock_api.on_connected = coro  # type: ignore[attr-defined]
+    await mock_api.on_device_connected()
+
+
+async def test_on_events_connected(mock_api: NiceGOApi) -> None:
+    mock_api._device_connected = True
+    coro = AsyncMock()
+    mock_api.on_connected = coro  # type: ignore[attr-defined]
+    await mock_api.on_events_connected()
+
+
+async def test_poll_ws_no_ws(mock_api: NiceGOApi) -> None:
+    mock_api._device_ws = None
+    mock_api._events_ws = None
+    await mock_api._poll_device_ws()
+    await mock_api._poll_events_ws()

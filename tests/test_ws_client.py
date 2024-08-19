@@ -283,3 +283,53 @@ async def test_received_message_type_or_payload_missing(
 ) -> None:
     with pytest.raises(WebSocketError):
         await mock_ws_client.received_message(json.dumps({"payload": "test_payload"}))
+
+
+async def test_barrier_obstructed(mock_ws_client: WebSocketClient) -> None:
+    mock_ws_client.api_type = "events"
+    mock_ws_client._dispatch = MagicMock()
+    mock_ws_client.dispatch_message(
+        {
+            "type": "data",
+            "payload": {
+                "data": {
+                    "eventsFeed": {
+                        "item": {
+                            "eventId": "event-error-barrier-obstructed",
+                        },
+                    },
+                },
+            },
+        },
+    )
+    assert mock_ws_client._dispatch.call_count == 1
+
+
+async def test_event_not_barrier_obstructed(mock_ws_client: WebSocketClient) -> None:
+    mock_ws_client.api_type = "events"
+    mock_ws_client._dispatch = MagicMock()
+    mock_ws_client.dispatch_message(
+        {
+            "type": "data",
+            "payload": {
+                "data": {
+                    "eventsFeed": {
+                        "item": {
+                            "eventId": "event-user-barrier-opened",
+                        },
+                    },
+                },
+            },
+        },
+    )
+    assert mock_ws_client._dispatch.call_count == 0
+
+
+async def test_unsubscribe_nonexistent_subscription(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    mock_ws_client._subscriptions = []
+    mock_ws_client.client_session = MagicMock(send_json=AsyncMock())
+    await mock_ws_client.unsubscribe("test_id")
+
+    assert mock_ws_client.client_session.send_json.call_count == 0

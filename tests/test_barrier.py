@@ -120,3 +120,45 @@ async def test_get_attr_not_found() -> None:
     with pytest.raises(KeyError) as exc_info:
         await barrier.get_attr("not_found")
     assert str(exc_info.value) == "'Attribute with key not_found not found.'"
+
+
+async def test_vacation_mode_on() -> None:
+    mock_api = MagicMock(vacation_mode_on=AsyncMock())
+    barrier = Barrier(
+        "barrier_id",
+        "barrier_type",
+        "control_level",
+        [],
+        BarrierState(
+            deviceId="device_id",
+            desired={"key": "value"},
+            reported={"key": "value"},
+            timestamp="timestamp",
+            version="version",
+            connectionState=None,
+        ),
+        mock_api,
+    )
+    await barrier.vacation_mode_on()
+    mock_api.vacation_mode_on.assert_called_once_with("barrier_id")
+
+
+async def test_vacation_mode_off() -> None:
+    mock_api = MagicMock(vacation_mode_off=AsyncMock())
+    barrier = Barrier(
+        "barrier_id",
+        "barrier_type",
+        "control_level",
+        [],
+        BarrierState(
+            deviceId="device_id",
+            desired={"key": "value"},
+            reported={"key": "value"},
+            timestamp="timestamp",
+            version="version",
+            connectionState=None,
+        ),
+        mock_api,
+    )
+    await barrier.vacation_mode_off()
+    mock_api.vacation_mode_off.assert_called_once_with("barrier_id")
