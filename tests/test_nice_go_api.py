@@ -264,8 +264,7 @@ async def test_connect_closed(mock_api: NiceGOApi) -> None:
 
         mock_ws_client_instance.poll.side_effect = side_effect
         await mock_api.connect(reconnect=True)
-        expected_call_count = 2
-        assert mock_ws_client_instance.connect.call_count == expected_call_count
+        assert mock_ws_client_instance.connect.call_count == 2  # noqa: PLR2004
 
 
 async def test_connect_reconnect(mock_api: NiceGOApi) -> None:
@@ -277,8 +276,7 @@ async def test_connect_reconnect(mock_api: NiceGOApi) -> None:
         mock_ws_client_instance.poll.side_effect = [WebSocketError(), None]
         with suppress(StopAsyncIteration):
             await mock_api.connect(reconnect=True)
-        expected_call_count = 2
-        assert mock_ws_client_instance.connect.call_count == expected_call_count
+        assert mock_ws_client_instance.connect.call_count == 2  # noqa: PLR2004
 
 
 async def test_subscribe(mock_api: NiceGOApi) -> None:
