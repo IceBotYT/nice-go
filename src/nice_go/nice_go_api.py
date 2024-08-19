@@ -72,24 +72,20 @@ class NiceGOApi:
         self._events_ws: WebSocketClient | None = None
         self._device_connected: bool = False
         self._events_connected: bool = False
+        self._events: dict[str, list[Callable[..., Coroutine[Any, Any, Any]]]] = {}
+
+        self.event(self.on_device_connected)
+        self.event(self.on_events_connected)
 
     async def on_device_connected(self) -> None:
-        """Handle the device connected event.
-
-        Args:
-            data (dict[str, Any]): The data received from the event.
-        """
+        """Handle the device connected event."""
         self._device_connected = True
         if self._device_connected and self._events_connected:
             # Only dispatch when both feeds are connected
             self._dispatch("connected")
 
     async def on_events_connected(self) -> None:
-        """Handle the events connected event.
-
-        Args:
-            data (dict[str, Any]): The data received from the event.
-        """
+        """Handle the events connected event."""
         self._events_connected = True
         if self._device_connected and self._events_connected:
             # Only dispatch when both feeds are connected
@@ -128,7 +124,7 @@ class NiceGOApi:
 
         _LOGGER.debug("Adding event listener %s", coro.__name__)
 
-        setattr(self, coro.__name__, coro)
+        self._events.setdefault(coro.__name__, []).append(coro)
         return coro
 
     async def _run_event(
@@ -182,12 +178,13 @@ class NiceGOApi:
         method = f"on_{event}"
 
         try:
-            coro = getattr(self, method)
+            coros = self._events.get(method, [])
         except AttributeError:
             pass
         else:
             _LOGGER.debug("Dispatching event %s", event)
-            self._schedule_event(coro, method, data)
+            for coro in coros:
+                self._schedule_event(coro, method, data)
 
     async def authenticate_refresh(
         self,
