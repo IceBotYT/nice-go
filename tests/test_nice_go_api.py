@@ -265,6 +265,7 @@ async def test_connect_closed(mock_api: NiceGOApi) -> None:
         mock_ws_client_instance.poll = AsyncMock(side_effect=side_effect)
         await mock_api.connect(reconnect=True)
         assert mock_ws_client_instance.connect.call_count == 2  # noqa: PLR2004
+        await mock_api.close()
 
 
 async def test_connect_reconnect(mock_api: NiceGOApi) -> None:
