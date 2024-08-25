@@ -29,6 +29,7 @@ from nice_go._exceptions import (
     ApiError,
     AuthFailedError,
     NoAuthError,
+    ReconnectWebSocketError,
     WebSocketError,
 )
 from nice_go._util import get_request_template
@@ -356,7 +357,7 @@ class NiceGOApi:
         while True:
             await self._events_ws.poll()
 
-    async def connect(self, *, reconnect: bool = True) -> None:
+    async def connect(self, *, reconnect: bool = True) -> None:  # noqa: C901
         """Connect to the WebSocket API.
 
         Warning:
@@ -379,8 +380,8 @@ class NiceGOApi:
             WebSocketError: If an error occurs while connecting.
         """
         backoff = ExponentialBackoff()
-        try:
-            while not self.closed:
+        while not self.closed:
+            try:
                 if self.id_token is None:
                     raise NoAuthError
 
@@ -419,34 +420,37 @@ class NiceGOApi:
                 device_task = asyncio.create_task(self._poll_device_ws())
                 events_task = asyncio.create_task(self._poll_events_ws())
 
-                results = await asyncio.gather(
-                    device_task,
-                    events_task,
-                    return_exceptions=True,
+                done, pending = await asyncio.wait(
+                    [device_task, events_task],
+                    return_when=asyncio.FIRST_EXCEPTION,
                 )
-                for result in results:
-                    if isinstance(result, Exception):
-                        raise result
-        except (
-            OSError,
-            WebSocketError,
-            aiohttp.ClientError,
-            asyncio.TimeoutError,
-        ) as e:
-            self._dispatch("connection_lost", {"exception": e})
-            self._device_connected = False
-            self._events_connected = False
-            if not reconnect:
-                _LOGGER.debug("Connection lost, not reconnecting")
-                await self.close()
-                raise
 
-            if self.closed:
-                return
+                for task in done:
+                    if task.exception():
+                        for p in pending:
+                            p.cancel()
+                        raise task.exception()  # type: ignore[misc]
+            except (  # noqa: PERF203
+                OSError,
+                WebSocketError,
+                aiohttp.ClientError,
+                asyncio.TimeoutError,
+                ReconnectWebSocketError,
+            ) as e:
+                self._dispatch("connection_lost", {"exception": e})
+                self._device_connected = False
+                self._events_connected = False
+                if not reconnect:
+                    _LOGGER.debug("Connection lost, not reconnecting")
+                    await self.close()
+                    raise
 
-            retry = backoff.delay()
-            _LOGGER.debug("Connection lost, retrying in %s seconds", retry)
-            await asyncio.sleep(retry)
+                if self.closed:
+                    return
+
+                retry = backoff.delay()
+                _LOGGER.debug("Connection lost, retrying in %s seconds", retry)
+                await asyncio.sleep(retry)
 
     async def subscribe(self, receiver: str) -> list[str]:
         """Subscribe to a receiver.

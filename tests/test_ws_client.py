@@ -10,6 +10,7 @@ import pytest
 import yarl
 
 from nice_go import WebSocketError
+from nice_go._exceptions import ReconnectWebSocketError
 from nice_go._ws_client import EventListener, WebSocketClient
 
 
@@ -97,6 +98,7 @@ async def test_ws_subscribe_and_close(mock_ws_client: WebSocketClient) -> None:
         mock_ws_client.ws.send_json.assert_called_once()
         await mock_ws_client.poll()
         await subscribe_task
+        mock_ws_client._timeout_task = MagicMock(cancel=MagicMock())
         await mock_ws_client.close()
         call_count_should_be = 2
         assert mock_ws_client.ws.send_json.call_count == call_count_should_be
@@ -137,6 +139,14 @@ async def test_ws_received_message(mock_ws_client: WebSocketClient) -> None:
 
     with pytest.raises(WebSocketError):
         await mock_ws_client.received_message("invalid_json")
+
+    mock_ws_client._timeout_task = MagicMock()
+    mock_ws_client._timeout_task.cancel = MagicMock()
+    mock_ws_client._watch_keepalive = MagicMock()  # type: ignore[method-assign]
+
+    with patch("nice_go._ws_client.asyncio.create_task") as mock_create_task:
+        await mock_ws_client.received_message(json.dumps({"type": "ka"}))
+        mock_create_task.assert_called_once()
 
 
 async def test_ws_received_message_dispatch_listener_skip_type(
@@ -333,3 +343,39 @@ async def test_unsubscribe_nonexistent_subscription(
     await mock_ws_client.unsubscribe("test_id")
 
     assert mock_ws_client.client_session.send_json.call_count == 0
+
+
+async def test_watch_keepalive(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    mock_ws_client.ws = MagicMock(closed=False)
+    mock_ws_client.ws.send_json = AsyncMock()
+    mock_ws_client.ws.receive = AsyncMock()
+    mock_ws_client.ws.receive.return_value = MagicMock(
+        data=json.dumps({"type": "ka"}),
+        type=aiohttp.WSMsgType.TEXT,
+    )
+    mock_ws_client.ws.close = AsyncMock()
+    mock_ws_client._timeout = 0.1
+    mock_ws_client._timeout_task = MagicMock(cancel=MagicMock())
+
+    with pytest.raises(ReconnectWebSocketError):
+        await mock_ws_client._watch_keepalive()
+
+    mock_ws_client.ws.close.assert_called_once()
+
+
+async def test_watch_keepalive_no_ws(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    mock_ws_client.ws = None
+    with pytest.raises(WebSocketError, match="WebSocket connection is closed"):
+        await mock_ws_client._watch_keepalive()
+
+
+async def test_reconnect_no_ws(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    mock_ws_client.ws = None
+    with pytest.raises(WebSocketError, match="WebSocket connection is closed"):
+        await mock_ws_client._reconnect()

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, Callable, NamedTuple
 
 import aiohttp
 
-from nice_go._exceptions import WebSocketError
+from nice_go._exceptions import ReconnectWebSocketError, WebSocketError
 from nice_go._util import get_request_template
 
 if TYPE_CHECKING:
@@ -62,6 +62,32 @@ class WebSocketClient:
             return json.loads(json.dumps(message).replace(self.id_token, "<REDACTED>"))
         return message.replace(self.id_token, "<REDACTED>")
 
+    async def _watch_keepalive(self) -> None:
+        """A task that handles the timeout for the WebSocket connection.
+
+        Raises:
+            WebSocketError: If the WebSocket connection is closed.
+        """
+        if self.ws is None or self.ws.closed:
+            msg = "WebSocket connection is closed"
+            raise WebSocketError(msg)
+        await asyncio.sleep(self._timeout / 1000)
+        _LOGGER.debug("WebSocket keepalive timeout reached, reconnecting")
+        await self._reconnect()
+
+    async def _reconnect(self) -> None:
+        """Reconnect to the WebSocket server.
+
+        Raises:
+            WebSocketError: If the WebSocket connection is closed or an error occurs.
+        """
+        if self.ws is None or self.ws.closed:
+            msg = "WebSocket connection is closed"
+            raise WebSocketError(msg)
+        _LOGGER.debug("Reconnecting to WebSocket server")
+        await self.close()
+        raise ReconnectWebSocketError
+
     async def connect(
         self,
         id_token: str,
@@ -91,6 +117,7 @@ class WebSocketClient:
         self.id_token = id_token
         self.host = host
         self.api_type = api_type  # Should be "device" or "events"
+        self._endpoint = endpoint
 
         raw_header = {
             "Authorization": id_token,
@@ -134,6 +161,8 @@ class WebSocketClient:
             raise WebSocketError(msg) from e
         _LOGGER.debug("Received connection_ack, WebSocket connection established")
 
+        self._timeout = data.get("payload", {}).get("timeout", 300000)
+        self._timeout_task = asyncio.create_task(self._watch_keepalive())
         self._dispatch(f"{self.api_type}_connected", None)
 
     async def send(self, message: str | dict[str, Any]) -> None:
@@ -168,6 +197,8 @@ class WebSocketClient:
         for subscription_id in self._subscriptions:
             _LOGGER.debug("Unsubscribing from subscription %s", subscription_id)
             await self.unsubscribe(subscription_id)
+        # Cancel the keepalive task
+        self._timeout_task.cancel()
         _LOGGER.debug("Closing WebSocket connection")
         await self.ws.close()
         _LOGGER.debug("WebSocket connection closed")
@@ -239,6 +270,11 @@ class WebSocketClient:
         elif message["type"] == "error":
             msg = f"Received error message: {message}"
             raise WebSocketError(msg)
+        elif message["type"] == "ka":
+            _LOGGER.debug("Received keepalive message")
+            # Restart the keepalive task
+            self._timeout_task.cancel()
+            self._timeout_task = asyncio.create_task(self._watch_keepalive())
         else:
             _LOGGER.debug("Received message of type %s: %s", message["type"], message)
 

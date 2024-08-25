@@ -277,7 +277,7 @@ async def test_connect_reconnect(mock_api: NiceGOApi) -> None:
         mock_ws_client_instance.poll.side_effect = [WebSocketError(), None]
         with suppress(StopAsyncIteration):
             await mock_api.connect(reconnect=True)
-        assert mock_ws_client_instance.connect.call_count == 2  # noqa: PLR2004
+        assert mock_ws_client_instance.connect.call_count == 4  # noqa: PLR2004
 
 
 async def test_subscribe(mock_api: NiceGOApi) -> None:
@@ -441,3 +441,27 @@ async def test_poll_ws_no_ws(mock_api: NiceGOApi) -> None:
     mock_api._events_ws = None
     await mock_api._poll_device_ws()
     await mock_api._poll_events_ws()
+
+
+async def test_connect_poll_task_exception(mock_api: NiceGOApi) -> None:
+    mock_api.id_token = "test_token"
+
+    with patch("nice_go.nice_go_api.asyncio.wait") as mock_wait, patch(
+        "nice_go.nice_go_api.WebSocketClient",
+    ) as mock_ws_client, patch("nice_go.nice_go_api.NiceGOApi._poll_device_ws"), patch(
+        "nice_go.nice_go_api.NiceGOApi._poll_events_ws",
+    ):
+        mock_ws_client_instance = AsyncMock()
+        mock_ws_client.return_value = mock_ws_client_instance
+        cancel_mock = MagicMock()
+        mock_wait.return_value = (
+            (
+                MagicMock(
+                    exception=MagicMock(return_value=ValueError("test")),
+                ),
+            ),
+            (MagicMock(cancel=cancel_mock),),
+        )
+        with pytest.raises(ValueError, match="test"):
+            await mock_api.connect(reconnect=False)
+        cancel_mock.assert_called_once()

@@ -19,3 +19,7 @@ class AuthFailedError(NiceGOError):
 
 class WebSocketError(NiceGOError):
     """WebSocket error."""
+
+
+class ReconnectWebSocketError(WebSocketError):
+    """Reconnect WebSocket error."""
