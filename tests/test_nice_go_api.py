@@ -272,17 +272,17 @@ async def test_connect_reconnect(mock_api: NiceGOApi) -> None:
     mock_api.id_token = "test_token"
 
     with patch("nice_go.nice_go_api.WebSocketClient") as mock_ws_client, patch(
-        "nice_go._backoff.ExponentialBackoff",
+        "nice_go.nice_go_api.ExponentialBackoff",
     ) as mock_backoff:
         mock_ws_client_instance = AsyncMock()
         mock_ws_client.return_value = mock_ws_client_instance
-        mock_ws_client_instance.poll.side_effect = [WebSocketError(), None, None, None]
+        mock_ws_client_instance.connect.side_effect = WebSocketError
         mock_backoff_instance = MagicMock()
         mock_backoff.return_value = mock_backoff_instance
         mock_backoff_instance.delay = MagicMock(return_value=0)
-        with suppress(StopAsyncIteration):
-            await mock_api.connect(reconnect=True)
-        assert mock_ws_client_instance.connect.call_count == 4  # noqa: PLR2004
+        with suppress(asyncio.TimeoutError):
+            await asyncio.wait_for(mock_api.connect(reconnect=True), timeout=0.1)
+        mock_backoff_instance.delay.assert_called()
 
 
 async def test_subscribe(mock_api: NiceGOApi) -> None:
