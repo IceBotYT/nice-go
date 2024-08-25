@@ -273,7 +273,7 @@ async def test_connect_reconnect(mock_api: NiceGOApi) -> None:
     with patch("nice_go.nice_go_api.WebSocketClient") as mock_ws_client:
         mock_ws_client_instance = AsyncMock()
         mock_ws_client.return_value = mock_ws_client_instance
-        mock_ws_client_instance.poll.side_effect = [WebSocketError(), None]
+        mock_ws_client_instance.poll.side_effect = [WebSocketError(), None, None, None]
         with suppress(StopAsyncIteration):
             await mock_api.connect(reconnect=True)
         assert mock_ws_client_instance.connect.call_count == 4  # noqa: PLR2004
