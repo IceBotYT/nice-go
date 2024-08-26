@@ -13,6 +13,7 @@ Classes:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 from typing import Any, Callable, Coroutine, TypeVar
@@ -420,10 +421,11 @@ class NiceGOApi:
                 device_task = asyncio.create_task(self._poll_device_ws())
                 events_task = asyncio.create_task(self._poll_events_ws())
 
-                done, pending = await asyncio.wait(
-                    [device_task, events_task],
-                    return_when=asyncio.FIRST_EXCEPTION,
-                )
+                with contextlib.suppress(asyncio.CancelledError):
+                    done, pending = await asyncio.wait(
+                        [device_task, events_task],
+                        return_when=asyncio.FIRST_EXCEPTION,
+                    )
 
                 if exceptions := [
                     task.exception() for task in done if task.exception()
@@ -438,6 +440,7 @@ class NiceGOApi:
                 asyncio.TimeoutError,
                 ReconnectWebSocketError,
             ) as e:
+                _LOGGER.debug("Connection error: %s", e)
                 self._dispatch("connection_lost", {"exception": e})
                 self._device_connected = False
                 self._events_connected = False

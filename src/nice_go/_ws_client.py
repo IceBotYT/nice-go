@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import json
 import logging
 import uuid
@@ -197,6 +198,8 @@ class WebSocketClient:
         for subscription_id in self._subscriptions:
             _LOGGER.debug("Unsubscribing from subscription %s", subscription_id)
             await self.unsubscribe(subscription_id)
+        with contextlib.suppress(asyncio.InvalidStateError):
+            self._timeout_task.exception()
         # Cancel the keepalive task
         self._timeout_task.cancel()
         _LOGGER.debug("Closing WebSocket connection")
