@@ -357,7 +357,7 @@ class NiceGOApi:
         while True:
             await self._events_ws.poll()
 
-    async def connect(self, *, reconnect: bool = True) -> None:  # noqa: C901
+    async def connect(self, *, reconnect: bool = True) -> None:
         """Connect to the WebSocket API.
 
         Warning:
@@ -425,14 +425,12 @@ class NiceGOApi:
                     return_when=asyncio.FIRST_EXCEPTION,
                 )
 
-                for task in done:
-                    if task.exception():
-                        for p in pending:
-                            # Get the exception to prevent "Task exception was
-                            # never retrieved"
-                            p.exception()
-                            p.cancel()
-                        raise task.exception()  # type: ignore[misc]
+                if exceptions := [
+                    task.exception() for task in done if task.exception()
+                ]:
+                    for p in pending:
+                        p.cancel()
+                    raise exceptions[0]  # type: ignore[misc]
             except (  # noqa: PERF203
                 OSError,
                 WebSocketError,
