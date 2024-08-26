@@ -122,6 +122,7 @@ async def test_ws_poll_errors(
     assert isinstance(mock_ws_client.ws, AsyncMock)
     mock_ws_client.ws.receive = AsyncMock()
     mock_ws_client.ws.receive.return_value = MagicMock(type=msg_type)
+    mock_ws_client._timeout_task = MagicMock()
     with pytest.raises(WebSocketError):
         await mock_ws_client.poll()
 
@@ -379,3 +380,39 @@ async def test_reconnect_no_ws(
     mock_ws_client.ws = None
     with pytest.raises(WebSocketError, match="WebSocket connection is closed"):
         await mock_ws_client._reconnect()
+
+
+async def test_close_timeout_task_cancelled(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    mock_ws_client._timeout_task = asyncio.create_task(asyncio.sleep(0))
+    mock_ws_client._timeout_task.cancel()
+
+    assert mock_ws_client.ws is not None
+    assert not mock_ws_client.ws.closed
+
+    assert not mock_ws_client._timeout_task.done()
+
+    await mock_ws_client.close()
+
+
+async def test_poll_timeout_task_cancelled(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    mock_ws_client._timeout_task = asyncio.create_task(asyncio.sleep(0))
+    mock_ws_client._timeout_task.cancel()
+
+    assert mock_ws_client.ws is not None
+    assert not mock_ws_client.ws.closed
+
+    assert not mock_ws_client._timeout_task.done()
+
+    mock_ws_client.ws = MagicMock(closed=False)
+    mock_ws_client.ws.receive = AsyncMock(
+        return_value=MagicMock(
+            type=aiohttp.WSMsgType.CLOSED,
+        ),
+    )
+
+    with pytest.raises(WebSocketError):
+        await mock_ws_client.poll()
