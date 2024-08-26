@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nice-go"
-version = "0.3.4"
+version = "0.3.5"
 description = "Control various Nice access control products"
 authors = [
     "IceBotYT <34712694+IceBotYT@users.noreply.github.com>",
