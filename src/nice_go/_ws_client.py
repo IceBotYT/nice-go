@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import contextlib
 import json
 import logging
 import uuid
@@ -198,10 +197,14 @@ class WebSocketClient:
         for subscription_id in self._subscriptions:
             _LOGGER.debug("Unsubscribing from subscription %s", subscription_id)
             await self.unsubscribe(subscription_id)
-        with contextlib.suppress(asyncio.InvalidStateError):
-            self._timeout_task.exception()
         # Cancel the keepalive task
         self._timeout_task.cancel()
+        try:
+            await self._timeout_task
+        except asyncio.CancelledError:
+            _LOGGER.debug("Keepalive task was cancelled")
+        except Exception:
+            _LOGGER.exception("Exception occurred while cancelling keepalive task")
         _LOGGER.debug("Closing WebSocket connection")
         await self.ws.close()
         _LOGGER.debug("WebSocket connection closed")
@@ -227,6 +230,14 @@ class WebSocketClient:
             aiohttp.WSMsgType.CLOSED,
         ):
             error_msg = "WebSocket connection closed"
+            # Cancel the keepalive task
+            self._timeout_task.cancel()
+            try:
+                await self._timeout_task
+            except asyncio.CancelledError:
+                _LOGGER.debug("Keepalive task was cancelled")
+            except Exception:
+                _LOGGER.exception("Exception occurred while cancelling keepalive task")
             raise WebSocketError(error_msg)
 
     def load_message(self, message: str) -> Any:

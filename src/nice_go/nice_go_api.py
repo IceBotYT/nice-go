@@ -440,7 +440,7 @@ class NiceGOApi:
                 asyncio.TimeoutError,
                 ReconnectWebSocketError,
             ) as e:
-                _LOGGER.debug("Connection error: %s", e)
+                _LOGGER.exception("Connection error")
                 self._dispatch("connection_lost", {"exception": e})
                 self._device_connected = False
                 self._events_connected = False
