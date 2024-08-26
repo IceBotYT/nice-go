@@ -428,6 +428,9 @@ class NiceGOApi:
                 for task in done:
                     if task.exception():
                         for p in pending:
+                            # Get the exception to prevent "Task exception was
+                            # never retrieved"
+                            p.exception()
                             p.cancel()
                         raise task.exception()  # type: ignore[misc]
             except (  # noqa: PERF203
