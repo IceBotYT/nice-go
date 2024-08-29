@@ -36,7 +36,7 @@ aiohttp = "^3.9.5"
 aiobotocore = "^2.13.1"
 yarl = "^1.9.4"
 pycognito = "^2024.5.1"
-tenacity = "8.5.0"
+tenacity = "9.0.0"
 
 [tool.poetry.group.dev.dependencies]
 mkdocstrings = {version = ">=0.23", extras = ["python"]}
