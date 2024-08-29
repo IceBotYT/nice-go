@@ -44,10 +44,13 @@ class WebSocketClient:
     """
 
     def __init__(self, client_session: aiohttp.ClientSession) -> None:
+        """Initialize the WebSocketClient."""
         self.ws: aiohttp.ClientWebSocketResponse | None = None
         self._dispatch_listeners: list[EventListener] = []
         self._subscriptions: list[str] = []
         self.client_session = client_session
+        self.reconnecting = False
+        self._timeout_task: asyncio.Task[None] | None = None
 
     def _redact_message(self, message: str | dict[str, Any]) -> Any:
         """Redact sensitive information from a message.
@@ -84,6 +87,7 @@ class WebSocketClient:
         if self.ws is None or self.ws.closed:
             msg = "WebSocket connection is closed"
             raise WebSocketError(msg)
+        self.reconnecting = True
         _LOGGER.debug("Reconnecting to WebSocket server")
         await self.close()
         raise ReconnectWebSocketError
@@ -197,14 +201,16 @@ class WebSocketClient:
         for subscription_id in self._subscriptions:
             _LOGGER.debug("Unsubscribing from subscription %s", subscription_id)
             await self.unsubscribe(subscription_id)
-        # Cancel the keepalive task
-        self._timeout_task.cancel()
-        try:
-            await self._timeout_task
-        except asyncio.CancelledError:
-            _LOGGER.debug("Keepalive task was cancelled")
-        except Exception:
-            _LOGGER.exception("Exception occurred while cancelling keepalive task")
+        if self._timeout_task is not None and not self._timeout_task.done():
+            _LOGGER.debug("Cancelling keepalive task")
+            # Cancel the keepalive task
+            self._timeout_task.cancel()
+            try:
+                await self._timeout_task
+            except asyncio.CancelledError:
+                _LOGGER.debug("Keepalive task was cancelled")
+            except Exception:
+                _LOGGER.exception("Exception occurred while cancelling keepalive task")
         _LOGGER.debug("Closing WebSocket connection")
         await self.ws.close()
         _LOGGER.debug("WebSocket connection closed")
@@ -230,14 +236,12 @@ class WebSocketClient:
             aiohttp.WSMsgType.CLOSED,
         ):
             error_msg = "WebSocket connection closed"
-            # Cancel the keepalive task
-            self._timeout_task.cancel()
-            try:
-                await self._timeout_task
-            except asyncio.CancelledError:
-                _LOGGER.debug("Keepalive task was cancelled")
-            except Exception:
-                _LOGGER.exception("Exception occurred while cancelling keepalive task")
+            if self._timeout_task is not None and not self._timeout_task.done():
+                # Cancel the keepalive task
+                self._timeout_task.cancel()
+            if self.reconnecting:
+                # Don't raise an error, just return
+                return
             raise WebSocketError(error_msg)
 
     def load_message(self, message: str) -> Any:
@@ -286,9 +290,10 @@ class WebSocketClient:
             raise WebSocketError(msg)
         elif message["type"] == "ka":
             _LOGGER.debug("Received keepalive message")
-            # Restart the keepalive task
-            self._timeout_task.cancel()
-            self._timeout_task = asyncio.create_task(self._watch_keepalive())
+            if self._timeout_task is not None and not self._timeout_task.done():
+                # Restart the keepalive task
+                self._timeout_task.cancel()
+                self._timeout_task = asyncio.create_task(self._watch_keepalive())
         else:
             _LOGGER.debug("Received message of type %s: %s", message["type"], message)
 

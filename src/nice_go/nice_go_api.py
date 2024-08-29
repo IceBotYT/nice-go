@@ -21,9 +21,16 @@ from typing import Any, Callable, Coroutine, TypeVar
 import aiohttp
 import botocore
 import yarl
+from tenacity import (
+    RetryCallState,
+    before_sleep_log,
+    retry,
+    retry_base,
+    retry_if_exception_type,
+    wait_random_exponential,
+)
 
 from nice_go._aws_cognito_authenticator import AwsCognitoAuthenticator
-from nice_go._backoff import ExponentialBackoff
 from nice_go._barrier import Barrier, BarrierState, ConnectionState
 from nice_go._const import ENDPOINTS_URL
 from nice_go._exceptions import (
@@ -41,6 +48,14 @@ Coro = Coroutine[Any, Any, T]
 CoroT = TypeVar("CoroT", bound=Callable[..., Coro[Any]])
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class _RetryIfReconnect(retry_base):
+    """Retries only if reconnect is set to True."""
+
+    def __call__(self, retry_state: RetryCallState) -> Any:
+        """Check if the retry should be retried."""
+        return retry_state.kwargs.get("reconnect", True)
 
 
 class NiceGOApi:
@@ -358,6 +373,21 @@ class NiceGOApi:
         while True:
             await self._events_ws.poll()
 
+    @retry(
+        wait=wait_random_exponential(multiplier=1, min=1, max=10),
+        retry=_RetryIfReconnect()
+        & retry_if_exception_type(
+            (
+                OSError,
+                WebSocketError,
+                aiohttp.ClientError,
+                asyncio.TimeoutError,
+                ReconnectWebSocketError,
+            ),
+        ),
+        reraise=True,
+        before_sleep=before_sleep_log(_LOGGER, logging.DEBUG),
+    )
     async def connect(self, *, reconnect: bool = True) -> None:
         """Connect to the WebSocket API.
 
@@ -380,81 +410,85 @@ class NiceGOApi:
             ApiError: If an API error occurs.
             WebSocketError: If an error occurs while connecting.
         """
-        backoff = ExponentialBackoff()
-        while not self.closed:
-            try:
-                if self.id_token is None:
-                    raise NoAuthError
+        try:
+            if self.id_token is None:
+                raise NoAuthError
 
-                if self._endpoints is None:
-                    msg = "Endpoints not available"
-                    raise ApiError(msg)
+            if self._endpoints is None:
+                msg = "Endpoints not available"
+                raise ApiError(msg)
 
-                if self._session is None:
-                    msg = "ClientSession not provided"
-                    raise ValueError(msg)
+            if self._session is None:
+                msg = "ClientSession not provided"
+                raise ValueError(msg)
 
-                device_url = self._endpoints["GraphQL"]["device"]["wss"]
-                events_url = self._endpoints["GraphQL"]["events"]["wss"]
+            self._reconnect = reconnect
 
-                _LOGGER.debug("Connecting to WebSocket API %s", device_url)
+            device_url = self._endpoints["GraphQL"]["device"]["wss"]
+            events_url = self._endpoints["GraphQL"]["events"]["wss"]
 
-                self._device_ws = WebSocketClient(client_session=self._session)
-                await self._device_ws.connect(
-                    self.id_token,
-                    yarl.URL(device_url),
-                    "device",
-                    self._dispatch,
-                    yarl.URL(self._endpoints["GraphQL"]["device"]["https"]).host,
+            _LOGGER.debug("Connecting to WebSocket API %s", device_url)
+
+            self._device_ws = WebSocketClient(client_session=self._session)
+            await self._device_ws.connect(
+                self.id_token,
+                yarl.URL(device_url),
+                "device",
+                self._dispatch,
+                yarl.URL(self._endpoints["GraphQL"]["device"]["https"]).host,
+            )
+            self._events_ws = WebSocketClient(client_session=self._session)
+            await self._events_ws.connect(
+                self.id_token,
+                yarl.URL(events_url),
+                "events",
+                self._dispatch,
+                yarl.URL(self._endpoints["GraphQL"]["events"]["https"]).host,
+            )
+
+            _LOGGER.debug("Connected to WebSocket API")
+
+            device_task = asyncio.create_task(self._poll_device_ws())
+            events_task = asyncio.create_task(self._poll_events_ws())
+
+            with contextlib.suppress(asyncio.CancelledError):
+                done, pending = await asyncio.wait(
+                    [device_task, events_task],
+                    return_when=asyncio.FIRST_EXCEPTION,
                 )
-                self._events_ws = WebSocketClient(client_session=self._session)
-                await self._events_ws.connect(
-                    self.id_token,
-                    yarl.URL(events_url),
-                    "events",
-                    self._dispatch,
-                    yarl.URL(self._endpoints["GraphQL"]["events"]["https"]).host,
-                )
 
-                _LOGGER.debug("Connected to WebSocket API")
-
-                device_task = asyncio.create_task(self._poll_device_ws())
-                events_task = asyncio.create_task(self._poll_events_ws())
-
-                with contextlib.suppress(asyncio.CancelledError):
-                    done, pending = await asyncio.wait(
-                        [device_task, events_task],
-                        return_when=asyncio.FIRST_EXCEPTION,
-                    )
-
+            with contextlib.suppress(UnboundLocalError):
                 if exceptions := [
                     task.exception() for task in done if task.exception()
                 ]:
                     for p in pending:
                         p.cancel()
+                    # Make sure both WS are closed
+                    await self._events_ws.close()
+                    await self._device_ws.close()
                     raise exceptions[0]  # type: ignore[misc]
-            except (  # noqa: PERF203
-                OSError,
-                WebSocketError,
-                aiohttp.ClientError,
-                asyncio.TimeoutError,
-                ReconnectWebSocketError,
-            ) as e:
-                _LOGGER.exception("Connection error")
-                self._dispatch("connection_lost", {"exception": e})
-                self._device_connected = False
-                self._events_connected = False
-                if not reconnect:
-                    _LOGGER.debug("Connection lost, not reconnecting")
-                    await self.close()
-                    raise
+        except (
+            OSError,
+            WebSocketError,
+            aiohttp.ClientError,
+            asyncio.TimeoutError,
+            ReconnectWebSocketError,
+        ) as e:
+            self._dispatch("connection_lost", {"exception": e})
+            self._device_connected = False
+            self._events_connected = False
+            if not reconnect:
+                _LOGGER.debug("Connection lost, not reconnecting")
+                await self.close()
+                raise
 
-                if self.closed:
-                    return
+            if self.closed:
+                return
 
-                retry = backoff.delay()
-                _LOGGER.debug("Connection lost, retrying in %s seconds", retry)
-                await asyncio.sleep(retry)
+            _LOGGER.debug("Connection lost, retrying...")
+
+            # Raising triggers retry
+            raise
 
     async def subscribe(self, receiver: str) -> list[str]:
         """Subscribe to a receiver.

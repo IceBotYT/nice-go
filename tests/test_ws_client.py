@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from contextlib import nullcontext as does_not_raise
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
@@ -141,7 +142,7 @@ async def test_ws_received_message(mock_ws_client: WebSocketClient) -> None:
     with pytest.raises(WebSocketError):
         await mock_ws_client.received_message("invalid_json")
 
-    mock_ws_client._timeout_task = MagicMock()
+    mock_ws_client._timeout_task = MagicMock(done=MagicMock(return_value=False))
     mock_ws_client._timeout_task.cancel = MagicMock()
     mock_ws_client._watch_keepalive = MagicMock()  # type: ignore[method-assign]
 
@@ -416,3 +417,40 @@ async def test_poll_timeout_task_cancelled(
 
     with pytest.raises(WebSocketError):
         await mock_ws_client.poll()
+
+
+async def test_poll_ws_closed_reconnecting(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    mock_ws_client.reconnecting = True
+    mock_ws_client.ws = MagicMock(
+        receive=AsyncMock(
+            return_value=MagicMock(
+                type=aiohttp.WSMsgType.CLOSED,
+            ),
+        ),
+        closed=False,
+    )
+    with does_not_raise():
+        await mock_ws_client.poll()
+
+
+async def test_close_timeout_task_exception(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    mock_timeout_task = MagicMock()
+    mock_timeout_task.done.return_value = False
+    mock_timeout_task.cancel = MagicMock()
+    mock_timeout_task.__await__ = MagicMock(side_effect=Exception("Test exception"))
+
+    mock_ws_client._timeout_task = mock_timeout_task
+
+    with patch("nice_go._ws_client._LOGGER") as mock_logger:
+        await mock_ws_client.close()
+
+        mock_timeout_task.cancel.assert_called_once()
+        mock_timeout_task.done.assert_called_once()
+        mock_logger.debug.assert_any_call("Cancelling keepalive task")
+        mock_logger.exception.assert_called_once_with(
+            "Exception occurred while cancelling keepalive task",
+        )

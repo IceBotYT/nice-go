@@ -5,6 +5,7 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from tenacity import wait_none
 
 from nice_go._aws_cognito_authenticator import AwsCognitoAuthenticator
 from nice_go._ws_client import WebSocketClient
@@ -29,6 +30,7 @@ def mock_api() -> NiceGOApi:
             },
         },
     }
+    api.connect.retry.wait = wait_none()  # type: ignore[attr-defined]
     return api
 
 
