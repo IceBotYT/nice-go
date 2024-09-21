@@ -659,6 +659,9 @@ class NiceGOApi:
             json=await get_request_template("open_barrier", {"barrier_id": barrier_id}),
         )
         data = await response.json()
+
+        _LOGGER.debug("Opening barrier response: %s", data)
+
         result: bool = data["data"]["devicesControl"]
 
         return result
@@ -696,6 +699,9 @@ class NiceGOApi:
             ),
         )
         data = await response.json()
+
+        _LOGGER.debug("Closing barrier response: %s", data)
+
         result: bool = data["data"]["devicesControl"]
 
         return result
@@ -736,6 +742,9 @@ class NiceGOApi:
             json=await get_request_template("light_on", {"barrier_id": barrier_id}),
         )
         data = await response.json()
+
+        _LOGGER.debug("Turning light on response: %s", data)
+
         result: bool = data["data"]["devicesControl"]
 
         return result
@@ -776,6 +785,9 @@ class NiceGOApi:
             json=await get_request_template("light_off", {"barrier_id": barrier_id}),
         )
         data = await response.json()
+
+        _LOGGER.debug("Turning light off response: %s", data)
+
         result: bool = data["data"]["devicesControl"]
 
         return result
