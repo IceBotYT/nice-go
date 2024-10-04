@@ -17,7 +17,7 @@
 
 ---
 
-Control various Nice access control products
+Control various Nice garage door and gate products
 
 ## Installation
 
