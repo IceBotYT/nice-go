@@ -155,6 +155,7 @@ class WebSocketClient:
             _LOGGER.debug("Waiting for connection_ack")
             message = await self.ws.receive(timeout=10)
             data = json.loads(message.data)
+            _LOGGER.debug("Received message: %s", data)
             if data["type"] != "connection_ack":
                 msg = f'Expected connection_ack, but received {data["type"]}'
                 raise WebSocketError(
