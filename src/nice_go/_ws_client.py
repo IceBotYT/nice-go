@@ -225,7 +225,7 @@ class WebSocketClient:
         if self.ws is None or self.ws.closed:
             error_msg = "WebSocket connection is closed"
             raise WebSocketError(error_msg)
-        msg = await self.ws.receive(timeout=60.0)
+        msg = await self.ws.receive(timeout=300.0)
         if msg.type == aiohttp.WSMsgType.TEXT:
             await self.received_message(msg.data)
         elif msg.type == aiohttp.WSMsgType.ERROR:
