@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 ### Fixed
 - Increased receive timeout for WS polling
+- Added extra debug logging to connection_ack check
 
 ## [0.3.9] - 2024-09-21
 ### Added
