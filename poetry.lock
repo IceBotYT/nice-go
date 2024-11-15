@@ -670,13 +670,13 @@ crt = ["awscrt (==0.21.5)"]
 
 [[package]]
 name = "botocore-stubs"
-version = "1.35.60"
+version = "1.35.62"
 description = "Type annotations and code completion for botocore"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "botocore_stubs-1.35.60-py3-none-any.whl", hash = "sha256:52b414b326df21a094ccd0c7840b5e82c80fa59a4decbb4594647ba2a250b3fc"},
-    {file = "botocore_stubs-1.35.60.tar.gz", hash = "sha256:ae2b94b099d43204db6d056b763fff47ebc5974fab24420e7f4a01526a590048"},
+    {file = "botocore_stubs-1.35.62-py3-none-any.whl", hash = "sha256:0251f63257eb8d5f4b414669e25f98898a2bac58fd6ffa1c9df6cf3dd823abd9"},
+    {file = "botocore_stubs-1.35.62.tar.gz", hash = "sha256:e536390ff6934627af351accd8da10bec6cf75e40add465ab0a9c088d7be765c"},
 ]
 
 [package.dependencies]
