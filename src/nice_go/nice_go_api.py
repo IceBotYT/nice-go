@@ -605,7 +605,6 @@ class NiceGOApi:
                 connection_state = None
             barrier_state = BarrierState(
                 device["state"]["deviceId"],
-                json.loads(device["state"]["desired"]),
                 json.loads(device["state"]["reported"]),
                 device["state"]["timestamp"],
                 device["state"]["version"],

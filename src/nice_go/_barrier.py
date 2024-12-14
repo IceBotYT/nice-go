@@ -44,7 +44,6 @@ class BarrierState:
 
     Attributes:
         deviceId (str): The device ID of the barrier.
-        desired (dict[str, Any]): The desired state of the barrier.
         reported (dict[str, Any]): The reported state of the barrier.
         timestamp (str): The timestamp of the last update.
         version (str): The version of the barrier.
@@ -52,7 +51,6 @@ class BarrierState:
     """
 
     deviceId: str  # noqa: N815
-    desired: dict[str, Any]
     reported: dict[str, Any]
     timestamp: str
     version: str

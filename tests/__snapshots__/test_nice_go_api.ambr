@@ -1,11 +1,11 @@
 # serializer version: 1
 # name: test_get_all_barriers
   list([
-    Barrier(id='test_id', type='test_type', controlLevel='test_control_level', attr=[{'key': 'test_key', 'value': 'test_value'}], state=BarrierState(deviceId='test_id', desired={'test': 'value'}, reported={'test': 'value'}, timestamp='1234567890', version=1, connectionState=ConnectionState(connected=True, updatedTimestamp='1234567890')), api=None),
+    Barrier(id='test_id', type='test_type', controlLevel='test_control_level', attr=[{'key': 'test_key', 'value': 'test_value'}], state=BarrierState(deviceId='test_id', reported={'test': 'value'}, timestamp='1234567890', version=1, connectionState=ConnectionState(connected=True, updatedTimestamp='1234567890')), api=None),
   ])
 # ---
 # name: test_get_all_barriers_no_connection_state
   list([
-    Barrier(id='test_id', type='test_type', controlLevel='test_control_level', attr=[{'key': 'test_key', 'value': 'test_value'}], state=BarrierState(deviceId='test_id', desired={'test': 'value'}, reported={'test': 'value'}, timestamp='1234567890', version=1, connectionState=None), api=None),
+    Barrier(id='test_id', type='test_type', controlLevel='test_control_level', attr=[{'key': 'test_key', 'value': 'test_value'}], state=BarrierState(deviceId='test_id', reported={'test': 'value'}, timestamp='1234567890', version=1, connectionState=None), api=None),
   ])
 # ---

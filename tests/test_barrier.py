@@ -14,7 +14,6 @@ async def test_open() -> None:
         [],
         BarrierState(
             deviceId="device_id",
-            desired={"key": "value"},
             reported={"key": "value"},
             timestamp="timestamp",
             version="version",
@@ -33,7 +32,6 @@ async def test_close() -> None:
         [],
         BarrierState(
             deviceId="device_id",
-            desired={"key": "value"},
             reported={"key": "value"},
             timestamp="timestamp",
             version="version",
@@ -52,7 +50,6 @@ async def test_light_on() -> None:
         [],
         BarrierState(
             deviceId="device_id",
-            desired={"key": "value"},
             reported={"key": "value"},
             timestamp="timestamp",
             version="version",
@@ -71,7 +68,6 @@ async def test_light_off() -> None:
         [],
         BarrierState(
             deviceId="device_id",
-            desired={"key": "value"},
             reported={"key": "value"},
             timestamp="timestamp",
             version="version",
@@ -90,7 +86,6 @@ async def test_get_attr() -> None:
         [{"key": "key", "value": "value"}],
         BarrierState(
             deviceId="device_id",
-            desired={"key": "value"},
             reported={"key": "value"},
             timestamp="timestamp",
             version="version",
@@ -109,7 +104,6 @@ async def test_get_attr_not_found() -> None:
         [{"key": "key", "value": "value"}],
         BarrierState(
             deviceId="device_id",
-            desired={"key": "value"},
             reported={"key": "value"},
             timestamp="timestamp",
             version="version",
@@ -131,7 +125,6 @@ async def test_vacation_mode_on() -> None:
         [],
         BarrierState(
             deviceId="device_id",
-            desired={"key": "value"},
             reported={"key": "value"},
             timestamp="timestamp",
             version="version",
@@ -152,7 +145,6 @@ async def test_vacation_mode_off() -> None:
         [],
         BarrierState(
             deviceId="device_id",
-            desired={"key": "value"},
             reported={"key": "value"},
             timestamp="timestamp",
             version="version",
