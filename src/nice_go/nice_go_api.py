@@ -373,6 +373,21 @@ class NiceGOApi:
         while True:
             await self._events_ws.poll()
 
+    async def _check_response_errors(self, response: dict[str, Any]) -> bool:
+        """Checks a GraphQL response for errors, namely for expired tokens.
+
+        Returns:
+            If the response is OK or not.
+        """
+
+        if errors := response.get("errors"):
+            error = errors[0]
+            if error["errorType"] == "UnauthorizedException":
+                raise AuthFailedError(error)
+            raise ApiError(error)
+
+        return True
+
     @retry(
         wait=wait_random_exponential(multiplier=1, min=1, max=10),
         retry=_RetryIfReconnect()
@@ -593,6 +608,8 @@ class NiceGOApi:
         _LOGGER.debug("Got all barriers")
         _LOGGER.debug("Data: %s", data)
 
+        await self._check_response_errors(data)
+
         barriers = []
 
         for device in data["data"]["devicesListAll"]["devices"]:
@@ -660,6 +677,7 @@ class NiceGOApi:
         data = await response.json()
 
         _LOGGER.debug("Opening barrier response: %s", data)
+        await self._check_response_errors(data)
 
         result: bool = data["data"]["devicesControl"]
 
@@ -700,6 +718,7 @@ class NiceGOApi:
         data = await response.json()
 
         _LOGGER.debug("Closing barrier response: %s", data)
+        await self._check_response_errors(data)
 
         result: bool = data["data"]["devicesControl"]
 
@@ -743,6 +762,7 @@ class NiceGOApi:
         data = await response.json()
 
         _LOGGER.debug("Turning light on response: %s", data)
+        await self._check_response_errors(data)
 
         result: bool = data["data"]["devicesControl"]
 
@@ -786,6 +806,7 @@ class NiceGOApi:
         data = await response.json()
 
         _LOGGER.debug("Turning light off response: %s", data)
+        await self._check_response_errors(data)
 
         result: bool = data["data"]["devicesControl"]
 
