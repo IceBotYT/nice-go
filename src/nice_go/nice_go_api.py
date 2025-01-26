@@ -373,11 +373,18 @@ class NiceGOApi:
         while True:
             await self._events_ws.poll()
 
-    async def _check_response_errors(self, response: dict[str, Any]) -> bool:
+    async def _check_response_errors(self, response: dict[str, Any]) -> None:
         """Checks a GraphQL response for errors, namely for expired tokens.
 
+        Args:
+            response (dict[str, Any]): The response to check.
+
+        Raises:
+            AuthFailedError: If the ID token is expired.
+            ApiError: If an API error occurs.
+
         Returns:
-            If the response is OK or not.
+            None
         """
 
         if errors := response.get("errors"):
@@ -385,8 +392,6 @@ class NiceGOApi:
             if error["errorType"] == "UnauthorizedException":
                 raise AuthFailedError(error)
             raise ApiError(error)
-
-        return True
 
     @retry(
         wait=wait_random_exponential(multiplier=1, min=1, max=10),
