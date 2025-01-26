@@ -465,3 +465,22 @@ async def test_connect_poll_task_exception(mock_api: NiceGOApi) -> None:
         with pytest.raises(ValueError, match="test"):
             await mock_api.connect(reconnect=False)
         cancel_mock.assert_called_once()
+
+
+async def test_graphql_error_response(mock_api: NiceGOApi) -> None:
+    mock_api.id_token = "test_token"
+    assert mock_api._session is not None
+    assert isinstance(mock_api._session, AsyncMock)
+    mock_api._session.post.return_value.json.return_value = {
+        "errors": [{"errorType": "TestError", "message": "test_error"}],
+    }
+    with pytest.raises(ApiError, match="test_error"):
+        await mock_api.get_all_barriers()
+
+    mock_api._session.post.return_value.json.return_value = {
+        "errors": [
+            {"errorType": "UnauthorizedException", "message": "unauthorized_error"},
+        ],
+    }
+    with pytest.raises(AuthFailedError, match="unauthorized_error"):
+        await mock_api.get_all_barriers()
