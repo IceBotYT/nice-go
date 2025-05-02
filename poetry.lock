@@ -2494,14 +2494,14 @@ files = [
 
 [[package]]
 name = "sourcery"
-version = "1.35.0"
+version = "1.36.0"
 description = "Magically refactor Python"
 optional = false
 python-versions = "*"
 files = [
-    {file = "sourcery-1.35.0-py2.py3-none-macosx_10_9_universal2.whl", hash = "sha256:196e20bcc1b295b326005f728638f0a4bbb9c1fe7399dce4d4409ecfc9a5e487"},
-    {file = "sourcery-1.35.0-py2.py3-none-manylinux1_x86_64.whl", hash = "sha256:0d1c63eb0465ed9405bea422ac6229aa1128e784160a481389ed6dbe90080682"},
-    {file = "sourcery-1.35.0-py2.py3-none-win_amd64.whl", hash = "sha256:61db72f1183abd231bc448a4d03a74738f3b1013ad4396dc2935c080c3863c36"},
+    {file = "sourcery-1.36.0-py2.py3-none-macosx_10_9_universal2.whl", hash = "sha256:df05bd6fd2df270c05afc57b4b2cb8a09420ead0215218a7822cdb906f4ba91b"},
+    {file = "sourcery-1.36.0-py2.py3-none-manylinux1_x86_64.whl", hash = "sha256:0841295f6903a6c682164fae3da6a06c5905a33444a7cf5494b8f752e7ec10dd"},
+    {file = "sourcery-1.36.0-py2.py3-none-win_amd64.whl", hash = "sha256:14f676cfbc8ca19c7496d92ad4e05b1b8a677eba61722712f5ad0c8f17c40989"},
 ]
 
 [[package]]
