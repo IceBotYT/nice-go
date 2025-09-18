@@ -2344,13 +2344,13 @@ six = ">=1.5"
 
 [[package]]
 name = "python-kacl"
-version = "0.6.6"
+version = "0.6.7"
 description = "Python module and CLI tool for validating and modifying Changelogs in \"keep-a-changelog\" format\""
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "python_kacl-0.6.6-py3-none-any.whl", hash = "sha256:06917ed24e2c99bac8b341ced477292fb8740e52c108046b7ff3d1d8144e60da"},
-    {file = "python_kacl-0.6.6.tar.gz", hash = "sha256:0ea058ab25c1c57be9294a6de5807c212b8298b2f5e42fcafc30879442f0c4a4"},
+    {file = "python_kacl-0.6.7-py3-none-any.whl", hash = "sha256:aafb79548cce65e3c2db61bb321e36942a170b840b3d21e8b64b18485a10bf19"},
+    {file = "python_kacl-0.6.7.tar.gz", hash = "sha256:d05846dc48372ac28fe6c144d26fc8e6dd23123c1423291a199b074e4d944e19"},
 ]
 
 [package.dependencies]
