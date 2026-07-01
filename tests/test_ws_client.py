@@ -11,7 +11,7 @@ import pytest
 import yarl
 
 from nice_go import WebSocketError
-from nice_go._exceptions import ReconnectWebSocketError
+from nice_go._exceptions import AuthFailedError, ReconnectWebSocketError
 from nice_go._ws_client import EventListener, WebSocketClient
 
 
@@ -46,6 +46,45 @@ async def test_ws_init_unexpected_type(mock_ws_client: WebSocketClient) -> None:
     mock_ws_client.ws.receive = AsyncMock()
     mock_ws_client.ws.receive.return_value = MagicMock(
         data=json.dumps({"type": "unexpected_type"}),
+    )
+    with pytest.raises(WebSocketError):
+        await mock_ws_client.init()
+
+
+async def test_ws_init_token_expired(mock_ws_client: WebSocketClient) -> None:
+    assert mock_ws_client.ws is not None
+    assert isinstance(mock_ws_client.ws, AsyncMock)
+    mock_ws_client.ws.receive = AsyncMock()
+    mock_ws_client.ws.receive.return_value = MagicMock(
+        data=json.dumps(
+            {
+                "type": "connection_error",
+                "payload": {
+                    "errors": [
+                        {
+                            "errorType": "UnauthorizedException",
+                            "message": "Token has expired.",
+                        },
+                    ],
+                },
+            },
+        ),
+    )
+    with pytest.raises(AuthFailedError, match="Token has expired."):
+        await mock_ws_client.init()
+
+
+async def test_ws_init_connection_error_other(mock_ws_client: WebSocketClient) -> None:
+    assert mock_ws_client.ws is not None
+    assert isinstance(mock_ws_client.ws, AsyncMock)
+    mock_ws_client.ws.receive = AsyncMock()
+    mock_ws_client.ws.receive.return_value = MagicMock(
+        data=json.dumps(
+            {
+                "type": "connection_error",
+                "payload": {"errors": [{"errorType": "SomeOtherError"}]},
+            },
+        ),
     )
     with pytest.raises(WebSocketError):
         await mock_ws_client.init()
