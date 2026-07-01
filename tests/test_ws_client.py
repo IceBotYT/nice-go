@@ -90,6 +90,58 @@ async def test_ws_init_connection_error_other(mock_ws_client: WebSocketClient) -
         await mock_ws_client.init()
 
 
+async def test_ws_init_connection_error_empty_errors(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    assert mock_ws_client.ws is not None
+    assert isinstance(mock_ws_client.ws, AsyncMock)
+    mock_ws_client.ws.receive = AsyncMock()
+    mock_ws_client.ws.receive.return_value = MagicMock(
+        data=json.dumps({"type": "connection_error", "payload": {"errors": []}}),
+    )
+    with pytest.raises(WebSocketError):
+        await mock_ws_client.init()
+
+
+async def test_ws_init_connection_error_missing_payload(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    assert mock_ws_client.ws is not None
+    assert isinstance(mock_ws_client.ws, AsyncMock)
+    mock_ws_client.ws.receive = AsyncMock()
+    mock_ws_client.ws.receive.return_value = MagicMock(
+        data=json.dumps({"type": "connection_error"}),
+    )
+    with pytest.raises(WebSocketError):
+        await mock_ws_client.init()
+
+
+async def test_ws_init_token_expired_not_first_error(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    assert mock_ws_client.ws is not None
+    assert isinstance(mock_ws_client.ws, AsyncMock)
+    mock_ws_client.ws.receive = AsyncMock()
+    mock_ws_client.ws.receive.return_value = MagicMock(
+        data=json.dumps(
+            {
+                "type": "connection_error",
+                "payload": {
+                    "errors": [
+                        {"errorType": "SomeOtherError", "message": "Other error."},
+                        {
+                            "errorType": "UnauthorizedException",
+                            "message": "Token has expired.",
+                        },
+                    ],
+                },
+            },
+        ),
+    )
+    with pytest.raises(AuthFailedError, match="Token has expired."):
+        await mock_ws_client.init()
+
+
 async def test_ws_init_timeout(mock_ws_client: WebSocketClient) -> None:
     assert mock_ws_client.ws is not None
     assert isinstance(mock_ws_client.ws, AsyncMock)

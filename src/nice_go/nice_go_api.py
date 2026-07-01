@@ -40,7 +40,7 @@ from nice_go._exceptions import (
     ReconnectWebSocketError,
     WebSocketError,
 )
-from nice_go._util import get_request_template
+from nice_go._util import find_unauthorized_error, get_request_template
 from nice_go._ws_client import WebSocketClient
 
 T = TypeVar("T")
@@ -388,10 +388,9 @@ class NiceGOApi:
         """
 
         if errors := response.get("errors"):
-            error = errors[0]
-            if error["errorType"] == "UnauthorizedException":
-                raise AuthFailedError(error)
-            raise ApiError(error)
+            if unauthorized := find_unauthorized_error(errors):
+                raise AuthFailedError(unauthorized)
+            raise ApiError(errors[0])
 
     @retry(
         wait=wait_random_exponential(multiplier=1, min=1, max=10),
