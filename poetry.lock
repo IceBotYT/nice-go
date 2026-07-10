@@ -2075,15 +2075,15 @@ python-legacy = ["mkdocstrings-python-legacy (>=0.2.1)"]
 
 [[package]]
 name = "mkdocstrings"
-version = "1.0.4"
+version = "1.0.5"
 description = "Automatic documentation from sources, for MkDocs."
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 markers = "python_version >= \"3.10\""
 files = [
-    {file = "mkdocstrings-1.0.4-py3-none-any.whl", hash = "sha256:63464b4b29053514f32a1dbbf604e52876d5e638111b0c295ab7ed3cac73ca9b"},
-    {file = "mkdocstrings-1.0.4.tar.gz", hash = "sha256:3969a6515b77db65fd097b53c1b7aa4ae840bd71a2ee62a6a3e89503446d7172"},
+    {file = "mkdocstrings-1.0.5-py3-none-any.whl", hash = "sha256:150eff6e8c370cc8d2ba4e452ece1275fe83ad34d8cc5884a89a0ed141618c49"},
+    {file = "mkdocstrings-1.0.5.tar.gz", hash = "sha256:3a9528223afd6bf459ea85541b600ef3542826bbeb4ab534553f4b3c4e6e5e48"},
 ]
 
 [package.dependencies]
