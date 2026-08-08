@@ -26,3 +26,21 @@ async def get_request_template(
         for key, value in arguments.items():
             template = template.replace(f"${key}", value)
     return json.loads(template)
+
+
+def find_unauthorized_error(
+    errors: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Find the first error indicating an expired/invalid ID token, if any.
+
+    Args:
+        errors: A list of GraphQL-style error dictionaries.
+
+    Returns:
+        The first error with `errorType` set to `UnauthorizedException`, or
+            `None` if no such error is present.
+    """
+    for error in errors:
+        if error.get("errorType") == "UnauthorizedException":
+            return error
+    return None
