@@ -16,8 +16,8 @@ from typing import TYPE_CHECKING, Any, Callable, NamedTuple
 
 import aiohttp
 
-from nice_go._exceptions import ReconnectWebSocketError, WebSocketError
-from nice_go._util import get_request_template
+from nice_go._exceptions import AuthFailedError, ReconnectWebSocketError, WebSocketError
+from nice_go._util import find_unauthorized_error, get_request_template
 
 if TYPE_CHECKING:
     import yarl
@@ -144,6 +144,8 @@ class WebSocketClient:
         """Initialize the WebSocket connection.
 
         Raises:
+            AuthFailedError: If the connection was rejected because the ID token
+                has expired.
             WebSocketError: If the WebSocket connection is closed or an error occurs.
         """
         if self.ws is None or self.ws.closed:
@@ -156,6 +158,12 @@ class WebSocketClient:
             message = await self.ws.receive(timeout=10)
             data = json.loads(message.data)
             _LOGGER.debug("Received message: %s", data)
+            if data["type"] == "connection_error":
+                errors = data.get("payload", {}).get("errors", [])
+                if unauthorized := find_unauthorized_error(errors):
+                    raise AuthFailedError(
+                        unauthorized.get("message", "Token has expired"),
+                    )
             if data["type"] != "connection_ack":
                 msg = f'Expected connection_ack, but received {data["type"]}'
                 raise WebSocketError(
