@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Drop caret upper bounds on runtime dependencies - ([#820](https://github.com/IceBotYT/nice-go/pull/820)) (thank you @balloob!)
+- Raise AuthFailedError on expired token during WebSocket reconnect - ([#818](https://github.com/IceBotYT/nice-go/pull/818)) (thank you @adam8833!)
+- Fix Python VS Code settings for Poetry - ([#880](https://github.com/IceBotYT/nice-go/pull/880))
+- Fix deprecated asyncio.iscoroutinefunction warning - ([#881](https://github.com/IceBotYT/nice-go/pull/881))
+
 ## [1.0.2] - 2026-05-13
 
 ### Changed
