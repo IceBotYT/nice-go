@@ -6,13 +6,17 @@ on:
 
 jobs:
   build-and-publish:
+    name: Build and publish package
     runs-on: ubuntu-latest
+    environment: PyPI
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/python-poetry-env
-      - name: Publish to pypi
-        run: |
-          poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
-          poetry publish --build --no-interaction
+      - name: Build package
+        run: poetry build --no-interaction
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@release/v1
       - name: Deploy docs
         run: poetry run mkdocs gh-deploy --force
