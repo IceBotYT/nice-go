@@ -23,8 +23,13 @@ jobs:
             run_tests:
               - 'src/**'
               - 'tests/**'
+              - 'pyproject.toml'
+              - 'poetry.lock'
             run_actionlint:
               - '.github/workflows/**'
+            run_docs:
+              - 'docs/**'
+              - 'mkdocs.yml'
 
   actionlint:
     name: Check workflow files
@@ -80,7 +85,7 @@ jobs:
 
   docs:
     needs: [changes, test]
-    if: needs.changes.outputs.run_tests == 'true'
+    if: needs.changes.outputs.run_docs == 'true' || needs.changes.outputs.run_tests == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
