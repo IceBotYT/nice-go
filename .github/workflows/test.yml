@@ -13,6 +13,7 @@ jobs:
     outputs:
       run_tests: ${{ steps.changes.outputs.run_tests }}
       run_actionlint: ${{ steps.changes.outputs.run_actionlint }}
+      run_docs: ${{ steps.changes.outputs.run_docs }}
     steps:
       - uses: actions/checkout@v7
       - name: Gather changed files
