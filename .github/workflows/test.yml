@@ -7,7 +7,35 @@ on:
       - "main"
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    name: Gather changed files
+    outputs:
+      run_tests: ${{ steps.changes.outputs.run_tests }}
+      run_actionlint: ${{ steps.changes.outputs.run_actionlint }}
+      run_docs: ${{ steps.changes.outputs.run_docs }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Gather changed files
+        id: changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            run_tests:
+              - 'src/**'
+              - 'tests/**'
+              - 'pyproject.toml'
+              - 'poetry.lock'
+            run_actionlint:
+              - '.github/workflows/**'
+            run_docs:
+              - 'docs/**'
+              - 'mkdocs.yml'
+
   actionlint:
+    name: Check workflow files
+    needs: changes
+    if: needs.changes.outputs.run_actionlint == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -39,6 +67,11 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
+    needs:
+      - changes
+      - lint-cruft
+      - pre-commit
+    if: needs.changes.outputs.run_tests == 'true'
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/python-poetry-env
@@ -52,6 +85,8 @@ jobs:
           path: coverage.xml
 
   docs:
+    needs: [changes, test]
+    if: needs.changes.outputs.run_docs == 'true' || needs.changes.outputs.run_tests == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
