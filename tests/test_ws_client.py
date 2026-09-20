@@ -11,7 +11,7 @@ import pytest
 import yarl
 
 from nice_go import WebSocketError
-from nice_go._exceptions import AuthFailedError, ReconnectWebSocketError
+from nice_go._exceptions import AuthFailedError
 from nice_go._ws_client import EventListener, WebSocketClient
 
 
@@ -149,6 +149,32 @@ async def test_ws_init_timeout(mock_ws_client: WebSocketClient) -> None:
     mock_ws_client.ws.receive.side_effect = asyncio.TimeoutError
     with pytest.raises(WebSocketError):
         await mock_ws_client.init()
+
+
+async def test_ws_init_uses_connection_timeout_ms(
+    mock_ws_client: WebSocketClient,
+) -> None:
+    connection_timeout_ms = 12345
+    assert mock_ws_client.ws is not None
+    assert isinstance(mock_ws_client.ws, AsyncMock)
+    mock_ws_client.ws.receive = AsyncMock(
+        return_value=MagicMock(
+            data=json.dumps(
+                {
+                    "type": "connection_ack",
+                    "payload": {"connectionTimeoutMs": connection_timeout_ms},
+                },
+            ),
+        ),
+    )
+    mock_ws_client.api_type = "device"
+    mock_ws_client._dispatch = MagicMock()
+
+    await mock_ws_client.init()
+
+    assert mock_ws_client._timeout == connection_timeout_ms
+    assert mock_ws_client._timeout_task is not None
+    mock_ws_client._timeout_task.cancel()
 
 
 async def test_ws_send_json(mock_ws_client: WebSocketClient) -> None:
@@ -450,11 +476,11 @@ async def test_watch_keepalive(
     )
     mock_ws_client.ws.close = AsyncMock()
     mock_ws_client._timeout = 0.1
-    mock_ws_client._timeout_task = MagicMock(cancel=MagicMock())
+    mock_ws_client._timeout_task = asyncio.current_task()
 
-    with pytest.raises(ReconnectWebSocketError):
-        await mock_ws_client._watch_keepalive()
+    await mock_ws_client._watch_keepalive()
 
+    assert mock_ws_client.reconnecting
     mock_ws_client.ws.close.assert_called_once()
 
 
