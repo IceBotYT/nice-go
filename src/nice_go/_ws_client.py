@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, Callable, NamedTuple
 
 import aiohttp
 
-from nice_go._exceptions import AuthFailedError, ReconnectWebSocketError, WebSocketError
+from nice_go._exceptions import AuthFailedError, WebSocketError
 from nice_go._util import find_unauthorized_error, get_request_template
 
 if TYPE_CHECKING:
@@ -89,8 +89,12 @@ class WebSocketClient:
             raise WebSocketError(msg)
         self.reconnecting = True
         _LOGGER.debug("Reconnecting to WebSocket server")
-        await self.close()
-        raise ReconnectWebSocketError
+        # Do not call close() here: the keepalive watcher is stored in
+        # _timeout_task, so close() would cancel and await the task that is
+        # currently executing. Closing the socket wakes the polling task,
+        # which propagates the connection loss to NiceGOApi and starts its
+        # existing reconnect flow.
+        await self.ws.close()
 
     async def connect(
         self,
@@ -174,7 +178,11 @@ class WebSocketClient:
             raise WebSocketError(msg) from e
         _LOGGER.debug("Received connection_ack, WebSocket connection established")
 
-        self._timeout = data.get("payload", {}).get("timeout", 300000)
+        payload = data.get("payload", {})
+        self._timeout = payload.get(
+            "connectionTimeoutMs",
+            payload.get("timeout", 300000),
+        )
         self._timeout_task = asyncio.create_task(self._watch_keepalive())
         self._dispatch(f"{self.api_type}_connected", None)
 
