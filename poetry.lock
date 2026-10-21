@@ -1138,15 +1138,15 @@ botocore = ["botocore"]
 
 [[package]]
 name = "botocore-stubs"
-version = "1.43.114"
+version = "1.43.116"
 description = "Type annotations and code completion for botocore"
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 markers = "python_version >= \"3.10\""
 files = [
-    {file = "botocore_stubs-1.43.114-py3-none-any.whl", hash = "sha256:05eece3dfd3f13d1c3fe95d5f3599c319b8e59bfd2faa4f30c33d52034d8eede"},
-    {file = "botocore_stubs-1.43.114.tar.gz", hash = "sha256:e88e9d06178017fa7642e46ecc59a978386ef41e5b4ca363d988d72f9251d773"},
+    {file = "botocore_stubs-1.43.116-py3-none-any.whl", hash = "sha256:2c94393e5578599a0ad05eb79401492a2ac9639b07d87401c15d6339d4ec2b11"},
+    {file = "botocore_stubs-1.43.116.tar.gz", hash = "sha256:5ae1a7864d1835c961706e93556c97daedd4202bd601512e3ad2959a3378de12"},
 ]
 
 [package.extras]
